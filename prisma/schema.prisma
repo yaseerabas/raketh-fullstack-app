@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String   // Hashed password using bcrypt
+  name          String?
+  whatsapp      String?  // For subscription communication
+  role          String   @default("user") // "user" or "admin"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Subscription relations
+  subscriptions Subscription[]
+  voiceClones   VoiceClone[]
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  name        String   @unique // "Basic", "Pro", "Premium", "Enterprise"
+  price       Float    // One-time payment
+  currency    String   @default("PKR")
+  credits      Int      // Total characters included
+  maxClones   Int     // Max voice clones allowed
+  features    String  // JSON string of features
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  userId          String
+  planId          String
+  status          String   @default("active") // "active", "canceled", "expired"
+  creditsPurchased Int      @default(0) // Total credits purchased
+  creditsUsed     Int      @default(0) // Credits used so far
+  startDate       DateTime @default(now())
+  endDate         DateTime? // null means one-time purchase
+  purchasedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        Plan     @relation(fields: [planId], references: [id])
+
+  @@unique([userId, planId])
+}
+
+model VoiceModel {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  language    String   @default("en-US")
+  gender      String   // "male", "female", "neutral"
+  category    String   @default("standard") // "standard", "premium", "custom"
+  description String?
+  sampleUrl   String?  // URL to sample audio
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  generations VoiceGeneration[]
+}
+
+model VoiceGeneration {
+  id          String   @id @default(cuid())
+  userId      String
+  voiceModelId String?
+  voiceCloneId String?
+  text        String   @db.Text // Use TEXT type for long content (up to 65KB)
+  textLength  Int      // Number of characters used
+  audioUrl    String?
+  duration    Float?   // Duration in seconds
+  status      String   @default("completed") // "pending", "completed", "failed"
+  type        String   @default("tts") // "tts" or "translate-tts"
+  sourceLanguage String? // Source language for translate-tts
+  targetLanguage String? // Target language for translate-tts
+  createdAt   DateTime @default(now())
+
+  voiceModel  VoiceModel? @relation(fields: [voiceModelId], references: [id])
+  voiceClone  VoiceClone? @relation(fields: [voiceCloneId], references: [id])
+}
+
+model VoiceClone {
+  id          String   @id @default(cuid())
+  userId      String
+  voiceId     String   @unique // Voice ID from external API
+  name        String   // Human-readable name
+  description String?
+  sampleUrl   String   // URL to the voice sample from external API
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generations VoiceGeneration[]
+}
