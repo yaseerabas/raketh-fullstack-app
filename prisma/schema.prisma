@@ -51,7 +51,7 @@ model Subscription {
   creditsPurchased Int      @default(0) // Total credits purchased for this period
   creditsUsed     Int      @default(0) // Credits used so far in this period
   startDate       DateTime @default(now())
-  expiresAt       DateTime // When the subscription expires (auto-calculated: startDate + plan.durationDays)
+  expiresAt       DateTime? // When the subscription expires (auto-calculated: startDate + plan.durationDays)
   endDate         DateTime? // When subscription actually ended (if manually cancelled)
   purchasedAt     DateTime @default(now())
   createdAt       DateTime @default(now())
