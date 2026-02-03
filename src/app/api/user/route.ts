@@ -11,6 +11,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // First, auto-expire any subscriptions that have passed their expiration date
+    await db.subscription.updateMany({
+      where: {
+        userId: session.user.id,
+        status: 'active',
+        expiresAt: {
+          lt: new Date()
+        }
+      },
+      data: {
+        status: 'expired',
+        endDate: new Date()
+      }
+    })
+
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       include: {
@@ -19,7 +34,10 @@ export async function GET(req: NextRequest) {
             plan: true
           },
           where: {
-            status: 'active'
+            status: 'active',
+            expiresAt: {
+              gt: new Date() // Only get non-expired subscriptions
+            }
           },
           orderBy: {
             purchasedAt: 'desc'
@@ -80,12 +98,14 @@ export async function GET(req: NextRequest) {
         id: subscription.id,
         status: subscription.status,
         startDate: subscription.startDate,
+        expiresAt: subscription.expiresAt,
         endDate: subscription.endDate,
         purchasedAt: subscription.purchasedAt,
         creditsPurchased,
         creditsUsed,
         creditsRemaining,
         creditsPercentage,
+        daysRemaining: Math.max(0, Math.ceil((new Date(subscription.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
         plan: plan ? {
           id: plan.id,
           name: plan.name,

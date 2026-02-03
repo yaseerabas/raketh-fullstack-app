@@ -4,15 +4,19 @@ import { useEffect, useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Switch } from '@/components/ui/switch'
 import { 
   LogOut, Users, Loader2, CreditCard, 
   Search, RefreshCw, UserCheck, UserX, Calendar,
-  Zap
+  Zap, Key, Plus, Edit, Trash2, Pin, PinOff
 } from 'lucide-react'
 import Image from 'next/image'
 import { useToast } from '@/hooks/use-toast'
@@ -34,9 +38,12 @@ interface Subscription {
   creditsPurchased: number
   creditsUsed: number
   startDate: string
+  expiresAt: string
   endDate: string | null
   purchasedAt: string
   plan: Plan
+  daysRemaining?: number
+  isExpired?: boolean
 }
 
 interface Plan {
@@ -47,7 +54,10 @@ interface Plan {
   credits: number
   maxClones: number
   features: string
+  durationDays: number
   active: boolean
+  pinnedOnHomepage: boolean
+  displayOrder: number
 }
 
 interface Stats {
@@ -76,6 +86,27 @@ export default function AdminDashboardPage() {
     totalRevenue: 0,
     recentGenerations: 0,
   })
+
+  // Password change state
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [selectedUserForPassword, setSelectedUserForPassword] = useState<User | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+
+  // Plan management state
+  const [planDialogOpen, setPlanDialogOpen] = useState(false)
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
+  const [planFormData, setPlanFormData] = useState({
+    name: '',
+    price: '',
+    credits: '',
+    maxClones: '',
+    features: '',
+    durationDays: '30',
+    pinnedOnHomepage: false,
+    displayOrder: '0'
+  })
+  const [isSavingPlan, setIsSavingPlan] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -207,6 +238,196 @@ export default function AdminDashboardPage() {
     }
   }
 
+  // Password change handler
+  const handleChangePassword = async () => {
+    if (!selectedUserForPassword || !newPassword) return
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Error',
+        description: 'Password must be at least 6 characters',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsChangingPassword(true)
+    try {
+      const response = await fetch('/api/admin/users/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUserForPassword.id, newPassword }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: `Password changed for ${selectedUserForPassword.email}`,
+        })
+        setPasswordDialogOpen(false)
+        setSelectedUserForPassword(null)
+        setNewPassword('')
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to change password')
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to change password',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
+  // Plan management handlers
+  const openCreatePlanDialog = () => {
+    setEditingPlan(null)
+    setPlanFormData({
+      name: '',
+      price: '',
+      credits: '',
+      maxClones: '',
+      features: '',
+      durationDays: '30',
+      pinnedOnHomepage: false,
+      displayOrder: '0'
+    })
+    setPlanDialogOpen(true)
+  }
+
+  const openEditPlanDialog = (plan: Plan) => {
+    setEditingPlan(plan)
+    let featuresStr = ''
+    try {
+      const featuresArr = JSON.parse(plan.features)
+      featuresStr = Array.isArray(featuresArr) ? featuresArr.join('\n') : plan.features
+    } catch {
+      featuresStr = plan.features
+    }
+    setPlanFormData({
+      name: plan.name,
+      price: plan.price.toString(),
+      credits: plan.credits.toString(),
+      maxClones: plan.maxClones.toString(),
+      features: featuresStr,
+      durationDays: (plan.durationDays || 30).toString(),
+      pinnedOnHomepage: plan.pinnedOnHomepage,
+      displayOrder: plan.displayOrder.toString()
+    })
+    setPlanDialogOpen(true)
+  }
+
+  const handleSavePlan = async () => {
+    if (!planFormData.name || !planFormData.price || !planFormData.credits || !planFormData.maxClones) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSavingPlan(true)
+    try {
+      const featuresArray = planFormData.features
+        .split('\n')
+        .map(f => f.trim())
+        .filter(f => f.length > 0)
+
+      const payload = {
+        ...planFormData,
+        features: JSON.stringify(featuresArray),
+        ...(editingPlan ? { id: editingPlan.id } : {})
+      }
+
+      const response = await fetch('/api/admin/plans', {
+        method: editingPlan ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: editingPlan ? 'Plan updated successfully' : 'Plan created successfully',
+        })
+        setPlanDialogOpen(false)
+        fetchPlans()
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to save plan')
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save plan',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSavingPlan(false)
+    }
+  }
+
+  const handleTogglePinPlan = async (plan: Plan) => {
+    try {
+      const response = await fetch('/api/admin/plans', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id: plan.id, 
+          pinnedOnHomepage: !plan.pinnedOnHomepage 
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: plan.pinnedOnHomepage ? 'Plan unpinned from homepage' : 'Plan pinned to homepage',
+        })
+        fetchPlans()
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update plan')
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update plan',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleDeletePlan = async (planId: string) => {
+    if (!confirm('Are you sure you want to delete this plan?')) return
+
+    try {
+      const response = await fetch(`/api/admin/plans?planId=${planId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: 'Plan deleted/deactivated successfully',
+        })
+        fetchPlans()
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete plan')
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete plan',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' })
   }
@@ -276,7 +497,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b glass">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgba(10,10,10,0.7)] backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3 group">
@@ -490,6 +711,19 @@ export default function AdminDashboardPage() {
                                 </span>
                               </div>
                             </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2 hover:border-white/30 hover:bg-white/5"
+                              onClick={() => {
+                                setSelectedUserForPassword(user)
+                                setNewPassword('')
+                                setPasswordDialogOpen(true)
+                              }}
+                            >
+                              <Key className="h-3 w-3" />
+                              Change Password
+                            </Button>
                           </div>
 
                           {/* Subscription Details */}
@@ -513,6 +747,24 @@ export default function AdminDashboardPage() {
                                   Cancel Subscription
                                 </Button>
                               </div>
+
+                              {/* Subscription Expiry Info */}
+                              {subscription.expiresAt && (
+                                <div className={`flex items-center justify-between p-2 rounded-lg mb-3 text-xs ${
+                                  subscription.daysRemaining !== undefined && subscription.daysRemaining <= 7 
+                                    ? 'bg-red-500/10 border border-red-500/30' 
+                                    : 'bg-white/5 border border-white/10'
+                                }`}>
+                                  <span className={subscription.daysRemaining !== undefined && subscription.daysRemaining <= 7 ? 'text-red-400' : 'text-muted-foreground'}>
+                                    {subscription.daysRemaining !== undefined && subscription.daysRemaining > 0 
+                                      ? `${subscription.daysRemaining} days remaining`
+                                      : 'Expired'}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    Expires: {new Date(subscription.expiresAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              )}
                               
                               {/* Credits Progress */}
                               <div className="space-y-2">
@@ -593,6 +845,14 @@ export default function AdminDashboardPage() {
 
         {/* Plans Tab */}
         <TabsContent value="plans" className="space-y-4">
+          {/* Create Plan Button */}
+          <div className="flex justify-end">
+            <Button onClick={openCreatePlanDialog} className="gap-2 gradient-primary text-background border-0">
+              <Plus className="h-4 w-4" />
+              Create Plan
+            </Button>
+          </div>
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {plans.map((plan, index) => {
               const subscribedCount = users.filter(
@@ -602,14 +862,17 @@ export default function AdminDashboardPage() {
               return (
                 <Card 
                   key={plan.id} 
-                  className={`glass-card border-0 hover-lift animate-fade-in-up ${plan.name === 'Pro' ? 'ring-2 ring-white/30' : ''}`}
+                  className={`glass-card border-0 hover-lift animate-fade-in-up ${plan.pinnedOnHomepage ? 'ring-2 ring-white/30' : ''}`}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{plan.name}</CardTitle>
-                      {plan.name === 'Pro' && (
-                        <Badge className="text-xs gradient-primary text-background border-0">Popular</Badge>
+                      {plan.pinnedOnHomepage && (
+                        <Badge className="text-xs gradient-primary text-background border-0">
+                          <Pin className="h-3 w-3 mr-1" />
+                          Pinned
+                        </Badge>
                       )}
                     </div>
                     <CardDescription className="text-2xl font-bold text-gradient">
@@ -634,24 +897,211 @@ export default function AdminDashboardPage() {
                           {subscribedCount} users
                         </Badge>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Display Order</span>
+                        <span className="font-medium">{plan.displayOrder}</span>
+                      </div>
                     </div>
                     
-                    <div className="pt-2 border-t border-border/50">
+                    <div className="pt-2 border-t border-border/50 space-y-2">
                       <Badge 
                         variant={plan.active ? 'default' : 'secondary'}
                         className={`w-full justify-center ${plan.active ? 'gradient-primary text-background border-0' : ''}`}
+                      >
+                        {plan.active ? 'Active' : 'Inactive'}
+                      </Badge>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs hover:border-white/30 hover:bg-white/5"
+                          onClick={() => handleTogglePinPlan(plan)}
                         >
-                          {plan.active ? 'Active' : 'Inactive'}
-                        </Badge>
+                          {plan.pinnedOnHomepage ? <PinOff className="h-3 w-3 mr-1" /> : <Pin className="h-3 w-3 mr-1" />}
+                          {plan.pinnedOnHomepage ? 'Unpin' : 'Pin'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs hover:border-white/30 hover:bg-white/5"
+                          onClick={() => openEditPlanDialog(plan)}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => handleDeletePlan(plan.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Password Change Dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent className="glass-card border-white/10">
+          <DialogHeader>
+            <DialogTitle>Change User Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {selectedUserForPassword?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Enter new password (min 6 characters)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="rounded-xl border-border/50 bg-muted/30"
+              />
             </div>
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleChangePassword} 
+              disabled={isChangingPassword || newPassword.length < 6}
+              className="gradient-primary text-background border-0"
+            >
+              {isChangingPassword ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Change Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Plan Create/Edit Dialog */}
+      <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
+        <DialogContent className="glass-card border-white/10 max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingPlan ? 'Edit Plan' : 'Create New Plan'}</DialogTitle>
+            <DialogDescription>
+              {editingPlan ? 'Update the plan details' : 'Create a new subscription plan'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2">
+              <Label htmlFor="planName">Plan Name *</Label>
+              <Input
+                id="planName"
+                placeholder="e.g., Basic, Pro, Premium"
+                value={planFormData.name}
+                onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
+                className="rounded-xl border-border/50 bg-muted/30"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="planPrice">Price (PKR) *</Label>
+                <Input
+                  id="planPrice"
+                  type="number"
+                  placeholder="1499"
+                  value={planFormData.price}
+                  onChange={(e) => setPlanFormData({ ...planFormData, price: e.target.value })}
+                  className="rounded-xl border-border/50 bg-muted/30"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="planCredits">Credits *</Label>
+                <Input
+                  id="planCredits"
+                  type="number"
+                  placeholder="1000000"
+                  value={planFormData.credits}
+                  onChange={(e) => setPlanFormData({ ...planFormData, credits: e.target.value })}
+                  className="rounded-xl border-border/50 bg-muted/30"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="planMaxClones">Max Clones *</Label>
+                <Input
+                  id="planMaxClones"
+                  type="number"
+                  placeholder="5 (-1 for unlimited)"
+                  value={planFormData.maxClones}
+                  onChange={(e) => setPlanFormData({ ...planFormData, maxClones: e.target.value })}
+                  className="rounded-xl border-border/50 bg-muted/30"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="planDurationDays">Duration (days)</Label>
+                <Input
+                  id="planDurationDays"
+                  type="number"
+                  placeholder="30"
+                  value={planFormData.durationDays}
+                  onChange={(e) => setPlanFormData({ ...planFormData, durationDays: e.target.value })}
+                  className="rounded-xl border-border/50 bg-muted/30"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="planDisplayOrder">Display Order</Label>
+              <Input
+                id="planDisplayOrder"
+                type="number"
+                placeholder="0"
+                value={planFormData.displayOrder}
+                onChange={(e) => setPlanFormData({ ...planFormData, displayOrder: e.target.value })}
+                className="rounded-xl border-border/50 bg-muted/30"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="planFeatures">Features (one per line)</Label>
+              <Textarea
+                id="planFeatures"
+                placeholder="All voice models&#10;Voice cloning&#10;Email support"
+                value={planFormData.features}
+                onChange={(e) => setPlanFormData({ ...planFormData, features: e.target.value })}
+                className="rounded-xl border-border/50 bg-muted/30 min-h-[100px]"
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/50">
+              <div>
+                <Label htmlFor="pinnedSwitch" className="font-medium">Pin to Homepage</Label>
+                <p className="text-xs text-muted-foreground">Show this plan in the pricing section</p>
+              </div>
+              <Switch
+                id="pinnedSwitch"
+                checked={planFormData.pinnedOnHomepage}
+                onCheckedChange={(checked) => setPlanFormData({ ...planFormData, pinnedOnHomepage: checked })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPlanDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSavePlan} 
+              disabled={isSavingPlan}
+              className="gradient-primary text-background border-0"
+            >
+              {isSavingPlan ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {editingPlan ? 'Update Plan' : 'Create Plan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </main>
+  </div>
   )
 }

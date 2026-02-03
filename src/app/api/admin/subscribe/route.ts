@@ -44,22 +44,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
     }
 
-    // Check if user already has an active subscription
+    // Check if user already has an active (non-expired) subscription
     const existingSubscription = await db.subscription.findFirst({
       where: {
         userId,
-        status: 'active'
+        status: 'active',
+        expiresAt: {
+          gt: new Date()
+        }
       }
     })
 
     if (existingSubscription) {
       return NextResponse.json(
-        { error: 'User already has an active subscription' },
+        { error: 'User already has an active subscription that has not expired yet' },
         { status: 400 }
       )
     }
 
-    // Create subscription for user
+    // Calculate expiration date based on plan duration (default 30 days)
+    const startDate = new Date()
+    const durationDays = plan.durationDays || 30
+    const expiresAt = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000)
+
+    // Create subscription for user (monthly subscription)
     const subscription = await db.subscription.create({
       data: {
         userId,
@@ -67,8 +75,8 @@ export async function POST(req: NextRequest) {
         status: 'active',
         creditsPurchased: plan.credits,
         creditsUsed: 0,
-        startDate: new Date(),
-        endDate: null, // One-time purchase
+        startDate,
+        expiresAt, // Subscription expires after plan.durationDays
         purchasedAt: new Date()
       }
     })
@@ -80,7 +88,9 @@ export async function POST(req: NextRequest) {
         userId: targetUser.id,
         planName: plan.name,
         creditsPurchased: plan.credits,
-        status: subscription.status
+        status: subscription.status,
+        expiresAt: subscription.expiresAt,
+        durationDays
       }
     })
   } catch (error) {

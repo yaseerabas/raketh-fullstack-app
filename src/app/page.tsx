@@ -70,51 +70,89 @@ const FEATURES = [
   },
 ]
 
-const PLANS = [
+// Default fallback plans if none are pinned in the database
+const DEFAULT_PLANS = [
   {
     name: 'Basic',
-    price: '1,499',
-    description: 'Perfect for personal use',
-    credits: '1 Million',
+    price: 1499,
+    credits: 1000000,
     features: ['All voice models', 'Voice cloning', 'Email support'],
-    popular: false,
   },
   {
     name: 'Pro',
-    price: '3,499',
-    description: 'For growing teams',
-    credits: '3 Million',
+    price: 3499,
+    credits: 3000000,
     features: ['All voice models', '10 voice clones', 'Priority support'],
-    popular: true,
   },
   {
     name: 'Premium',
-    price: '5,999',
-    description: 'For professionals',
-    credits: '5 Million',
+    price: 5999,
+    credits: 5000000,
     features: ['All premium models', '25 voice clones', 'Priority support'],
-    popular: false,
   },
   {
     name: 'Enterprise',
-    price: '7,999',
-    description: 'For large organizations',
-    credits: '10 Million',
+    price: 7999,
+    credits: 10000000,
     features: ['All premium models', 'Unlimited voice clones', 'Dedicated support'],
-    popular: false,
   },
 ]
+
+interface Plan {
+  id?: string
+  name: string
+  price: number
+  credits: number
+  features: string[] | string
+  maxClones?: number
+}
 
 export default function Home() {
   const [playingId, setPlayingId] = useState<string | null>(null)
   const [isVisible, setIsVisible] = useState(false)
+  const [plans, setPlans] = useState<Plan[]>(DEFAULT_PLANS)
+  const [plansLoading, setPlansLoading] = useState(true)
   const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({})
 
   useEffect(() => {
     setIsVisible(true)
     // Force dark mode
     document.documentElement.classList.add('dark')
+    // Fetch pinned plans
+    fetchPlans()
   }, [])
+
+  const fetchPlans = async () => {
+    try {
+      const response = await fetch('/api/plans')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.plans && data.plans.length > 0) {
+          setPlans(data.plans.map((p: any) => ({
+            ...p,
+            features: typeof p.features === 'string' ? JSON.parse(p.features) : p.features
+          })))
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching plans:', error)
+    } finally {
+      setPlansLoading(false)
+    }
+  }
+
+  const formatCredits = (credits: number) => {
+    if (credits >= 1000000) {
+      return `${(credits / 1000000).toFixed(0)} Million`
+    } else if (credits >= 1000) {
+      return `${(credits / 1000).toFixed(0)}K`
+    }
+    return credits.toString()
+  }
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-PK').format(price)
+  }
 
   const handlePlayDemo = (demoId: string, audioFile: string) => {
     Object.entries(audioRefs.current).forEach(([id, audio]) => {
@@ -145,7 +183,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col overflow-hidden">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b glass">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[rgba(10,10,10,0.7)] backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2 group">
@@ -362,73 +400,75 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {PLANS.map((plan, index) => (
-              <Card 
-                key={plan.name}
-                className={`glass-card hover-lift border-0 overflow-hidden relative ${
-                  plan.popular ? 'ring-2 ring-white/30 shadow-xl scale-105' : ''
-                }`}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {plan.popular && (
-                  <div className="absolute top-0 left-0 right-0 h-1 gradient-primary" />
-                )}
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl">{plan.name}</CardTitle>
-                    {plan.popular && (
-                      <span className="px-3 py-1 rounded-full gradient-primary text-black text-xs font-medium">
-                        Popular
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold">RS {plan.price}</span>
-                    <span className="text-muted-foreground">/one-time</span>
-                  </div>
-                  <CardDescription className="mt-2">
-                    {plan.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-sm text-muted-foreground">Characters</span>
-                    <p className="text-2xl font-bold text-foreground">{plan.credits}</p>
-                  </div>
-                  <ul className="space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-3">
-                        <div className="w-5 h-5 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-                          <Check className="h-3 w-3 text-white" />
-                        </div>
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    variant={plan.popular ? 'default' : 'outline'} 
-                    className={`w-full transition-all duration-300 ${
-                      plan.popular 
-                        ? 'gradient-primary text-background border-0 hover:shadow-lg' 
-                        : 'hover:border-white/30 hover:bg-white/5'
-                    }`}
-                    onClick={() =>
-                      window.open(
-                        `https://wa.me/+923025295337?text=${encodeURIComponent(
-                          `Hi, I want the ${plan.name} plan subscription (RS ${plan.price}).`
-                        )}`,
-                        '_blank'
-                      )
-                    }
-                  >
-                    Contact via WhatsApp
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+          <div className={`grid gap-6 ${plans.length === 1 ? 'md:grid-cols-1 max-w-md mx-auto' : plans.length === 2 ? 'md:grid-cols-2 max-w-2xl mx-auto' : plans.length === 3 ? 'md:grid-cols-3 max-w-4xl mx-auto' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
+            {plans.map((plan, index) => {
+              const isPopular = index === 1 && plans.length > 2 // Second plan is popular if more than 2 plans
+              const features = Array.isArray(plan.features) ? plan.features : []
+              
+              return (
+                <Card 
+                  key={plan.name}
+                  className={`glass-card hover-lift border-0 overflow-hidden relative ${
+                    isPopular ? 'ring-2 ring-white/30 shadow-xl scale-105' : ''
+                  }`}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {isPopular && (
+                    <div className="absolute top-0 left-0 right-0 h-1 gradient-primary" />
+                  )}
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xl">{plan.name}</CardTitle>
+                      {isPopular && (
+                        <span className="px-3 py-1 rounded-full gradient-primary text-black text-xs font-medium">
+                          Popular
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-4xl font-bold">RS {formatPrice(plan.price)}</span>
+                      <span className="text-muted-foreground">/month</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/10">
+                      <span className="text-sm text-muted-foreground">Characters</span>
+                      <p className="text-2xl font-bold text-foreground">{formatCredits(plan.credits)}</p>
+                    </div>
+                    <ul className="space-y-3">
+                      {features.map((feature, i) => (
+                        <li key={i} className="flex items-center gap-3">
+                          <div className="w-5 h-5 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      variant={isPopular ? 'default' : 'outline'} 
+                      className={`w-full transition-all duration-300 ${
+                        isPopular 
+                          ? 'gradient-primary text-background border-0 hover:shadow-lg' 
+                          : 'hover:border-white/30 hover:bg-white/5'
+                      }`}
+                      onClick={() =>
+                        window.open(
+                          `https://wa.me/+923025295337?text=${encodeURIComponent(
+                            `Hi, I want the ${plan.name} plan subscription (RS ${formatPrice(plan.price)}).`
+                          )}`,
+                          '_blank'
+                        )
+                      }
+                    >
+                      Contact via WhatsApp
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )
+            })}
           </div>
         </div>
       </section>

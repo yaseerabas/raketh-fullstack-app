@@ -48,7 +48,10 @@ export async function POST(req: NextRequest) {
             plan: true
           },
           where: {
-            status: 'active'
+            status: 'active',
+            expiresAt: {
+              gt: new Date() // Only get non-expired subscriptions
+            }
           },
           orderBy: {
             purchasedAt: 'desc'
@@ -65,7 +68,20 @@ export async function POST(req: NextRequest) {
     const subscription = user.subscriptions[0]
     if (!subscription) {
       return NextResponse.json(
-        { error: 'No active subscription. Please contact us via WhatsApp to purchase a plan.' },
+        { error: 'No active subscription or your subscription has expired. Please contact us via WhatsApp to renew your plan.' },
+        { status: 403 }
+      )
+    }
+
+    // Double-check expiration (in case it just expired)
+    if (new Date(subscription.expiresAt) < new Date()) {
+      // Mark as expired
+      await db.subscription.update({
+        where: { id: subscription.id },
+        data: { status: 'expired', endDate: new Date() }
+      })
+      return NextResponse.json(
+        { error: 'Your subscription has expired. Please contact us via WhatsApp to renew your plan.' },
         { status: 403 }
       )
     }

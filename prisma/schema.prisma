@@ -28,12 +28,15 @@ model User {
 model Plan {
   id          String   @id @default(cuid())
   name        String   @unique // "Basic", "Pro", "Premium", "Enterprise"
-  price       Float    // One-time payment
+  price       Float    // Monthly price
   currency    String   @default("PKR")
-  credits      Int      // Total characters included
+  credits      Int      // Total characters included per month
   maxClones   Int     // Max voice clones allowed
   features    String  // JSON string of features
+  durationDays Int    @default(30) // Subscription duration in days (default 30 days / 1 month)
   active      Boolean  @default(true)
+  pinnedOnHomepage Boolean @default(false) // Show on homepage pricing
+  displayOrder Int     @default(0) // Order for homepage display
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -45,10 +48,11 @@ model Subscription {
   userId          String
   planId          String
   status          String   @default("active") // "active", "canceled", "expired"
-  creditsPurchased Int      @default(0) // Total credits purchased
-  creditsUsed     Int      @default(0) // Credits used so far
+  creditsPurchased Int      @default(0) // Total credits purchased for this period
+  creditsUsed     Int      @default(0) // Credits used so far in this period
   startDate       DateTime @default(now())
-  endDate         DateTime? // null means one-time purchase
+  expiresAt       DateTime // When the subscription expires (auto-calculated: startDate + plan.durationDays)
+  endDate         DateTime? // When subscription actually ended (if manually cancelled)
   purchasedAt     DateTime @default(now())
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -56,7 +60,8 @@ model Subscription {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan        Plan     @relation(fields: [planId], references: [id])
 
-  @@unique([userId, planId])
+  @@index([userId, status])
+  @@index([expiresAt])
 }
 
 model VoiceModel {

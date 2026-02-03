@@ -11,6 +11,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Auto-expire subscriptions that have passed their expiration date
+    await db.subscription.updateMany({
+      where: {
+        status: 'active',
+        expiresAt: {
+          lt: new Date()
+        }
+      },
+      data: {
+        status: 'expired',
+        endDate: new Date()
+      }
+    })
+
     const searchParams = req.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
@@ -35,8 +49,15 @@ export async function GET(req: NextRequest) {
       db.subscription.count()
     ])
 
+    // Add computed fields
+    const subscriptionsWithMeta = subscriptions.map(sub => ({
+      ...sub,
+      daysRemaining: sub.expiresAt ? Math.max(0, Math.ceil((new Date(sub.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null,
+      isExpired: sub.expiresAt ? new Date(sub.expiresAt) < new Date() : false
+    }))
+
     return NextResponse.json({
-      subscriptions,
+      subscriptions: subscriptionsWithMeta,
       total,
       limit,
       offset

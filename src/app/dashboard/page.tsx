@@ -47,12 +47,14 @@ interface Subscription {
   id: string
   status: string
   startDate: string
+  expiresAt: string
   endDate: string | null
   purchasedAt: string
   creditsPurchased: number
   creditsUsed: number
   creditsRemaining: number
   creditsPercentage: number
+  daysRemaining: number
   plan: Plan
 }
 
@@ -155,7 +157,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b glass">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgba(10,10,10,0.7)] backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2 group">
@@ -163,9 +165,6 @@ export default function DashboardPage() {
               <span className="font-bold">RaketH Clone</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="hover:bg-white/10 transition-colors">
-                <Settings className="h-5 w-5" />
-              </Button>
               <Button variant="ghost" size="icon" onClick={handleSignOut} className="hover:bg-destructive/10 hover:text-destructive transition-colors">
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -313,13 +312,30 @@ export default function DashboardPage() {
                         {userData.subscription.plan.name} Plan
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        RS {userData.subscription.plan.price} / {userData.subscription.endDate ? 'month' : 'one-time'}
+                        RS {userData.subscription.plan.price} / month
                       </p>
                     </div>
                     <Badge variant={userData.subscription.status === 'active' ? 'default' : 'secondary'} className={userData.subscription.status === 'active' ? 'gradient-primary text-background border-0' : ''}>
                       {userData.subscription.status}
                     </Badge>
                   </div>
+
+                  {/* Subscription Expiry Info */}
+                  {userData.subscription.expiresAt && (
+                    <div className={`flex items-center justify-between p-3 rounded-xl border ${userData.subscription.daysRemaining <= 7 ? 'bg-red-500/10 border-red-500/30' : 'bg-white/5 border-white/10'}`}>
+                      <div className="flex items-center gap-2">
+                        <Clock className={`h-4 w-4 ${userData.subscription.daysRemaining <= 7 ? 'text-red-400' : 'text-muted-foreground'}`} />
+                        <span className="text-sm">
+                          {userData.subscription.daysRemaining > 0 
+                            ? `${userData.subscription.daysRemaining} days remaining`
+                            : 'Subscription expired'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Expires: {new Date(userData.subscription.expiresAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
 
                   <Separator className="bg-border/50" />
 
