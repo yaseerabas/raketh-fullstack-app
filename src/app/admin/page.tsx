@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
-  Volume2, LogOut, Users, Loader2, CreditCard, 
+  LogOut, Users, Loader2, CreditCard, 
   Search, RefreshCw, UserCheck, UserX, Calendar,
   Zap
 } from 'lucide-react'
+import Image from 'next/image'
 import { useToast } from '@/hooks/use-toast'
 
 interface User {
@@ -263,8 +264,8 @@ export default function AdminDashboardPage() {
       <div className="min-h-screen flex items-center justify-center gradient-mesh">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 rounded-full blur-lg opacity-50 animate-pulse" />
-            <Loader2 className="relative h-12 w-12 animate-spin text-primary" />
+            <div className="absolute inset-0 bg-white/20 rounded-full blur-lg opacity-50 animate-pulse" />
+            <Loader2 className="relative h-12 w-12 animate-spin text-foreground" />
           </div>
           <p className="text-muted-foreground animate-pulse">Loading admin dashboard...</p>
         </div>
@@ -279,15 +280,10 @@ export default function AdminDashboardPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity" />
-                <div className="relative h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center">
-                  <Volume2 className="h-5 w-5 text-white" />
-                </div>
-              </div>
+              <Image src="/logo.png" alt="RaketH Clone" width={44} height={44} className="h-11 w-11 object-contain drop-shadow-lg" />
               <div>
                 <span className="font-bold text-lg">RaketH Clone</span>
-                <Badge variant="secondary" className="ml-2 text-xs bg-primary/10 border-primary/20">Admin</Badge>
+                <Badge variant="secondary" className="ml-2 text-xs bg-white/10 border-white/20">Admin</Badge>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -323,7 +319,7 @@ export default function AdminDashboardPage() {
             size="sm" 
             onClick={fetchData}
             disabled={isRefreshing}
-            className="gap-2 self-start hover:border-primary/50 hover:bg-primary/5 transition-all"
+            className="gap-2 self-start hover:border-white/30 hover:bg-white/5 transition-all"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
@@ -335,8 +331,8 @@ export default function AdminDashboardPage() {
           <Card className="glass-card border-0 hover-lift animate-fade-in-up">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-foreground" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.totalUsers}</p>
@@ -349,8 +345,8 @@ export default function AdminDashboardPage() {
           <Card className="glass-card border-0 hover-lift animate-fade-in-up animation-delay-100">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-green-500/20 to-green-600/20 flex items-center justify-center">
-                  <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
+                  <UserCheck className="h-5 w-5 text-foreground" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.activeSubscriptions}</p>
@@ -363,8 +359,8 @@ export default function AdminDashboardPage() {
           <Card className="glass-card border-0 hover-lift animate-fade-in-up animation-delay-200">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center">
-                  <Zap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-foreground" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{formatCredits(stats.totalCreditsUsed)}</p>
@@ -377,8 +373,8 @@ export default function AdminDashboardPage() {
           <Card className="glass-card border-0 hover-lift animate-fade-in-up animation-delay-300">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/20 flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-foreground" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</p>
@@ -414,7 +410,7 @@ export default function AdminDashboardPage() {
                       placeholder="Search by email, name, or WhatsApp..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 rounded-xl border-border/50 bg-muted/30 focus:border-primary/50 focus:ring-primary/20 transition-all"
+                      className="pl-10 rounded-xl border-border/50 bg-muted/30 focus:border-white/30 focus:ring-white/20 transition-all"
                     />
                   </div>
                   <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
@@ -450,8 +446,8 @@ export default function AdminDashboardPage() {
               <CardContent>
                 {filteredUsers.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
-                      <UserX className="h-8 w-8 text-primary" />
+                    <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4">
+                      <UserX className="h-8 w-8 text-foreground" />
                     </div>
                     <p className="text-muted-foreground">
                       {searchQuery ? 'No users match your search' : 'No users found'}
@@ -466,7 +462,7 @@ export default function AdminDashboardPage() {
                       return (
                         <div 
                           key={user.id} 
-                          className="p-4 rounded-xl border border-border/50 bg-muted/30 hover:border-primary/30 hover:bg-muted/50 transition-all duration-300 animate-fade-in cursor-pointer"
+                          className="p-4 rounded-xl border border-border/50 bg-muted/30 hover:border-white/20 hover:bg-muted/50 transition-all duration-300 animate-fade-in cursor-pointer"
                           style={{ animationDelay: `${index * 50}ms` }}
                         >
                           {/* User Header */}
@@ -498,10 +494,10 @@ export default function AdminDashboardPage() {
 
                           {/* Subscription Details */}
                           {hasActiveSubscription ? (
-                            <div className="p-3 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/10 mb-4">
+                            <div className="p-3 rounded-xl bg-white/5 border border-white/10 mb-4">
                               <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+                                  <Badge variant="outline" className="text-xs bg-white/10 text-foreground border-white/20">
                                     Active
                                   </Badge>
                                   <span className="text-sm font-medium">
@@ -530,10 +526,10 @@ export default function AdminDashboardPage() {
                                   <div
                                     className={`h-2 rounded-full transition-all duration-500 ${
                                       getCreditsUsedPercentage(user) > 90 
-                                        ? 'bg-gradient-to-r from-red-500 to-red-400' 
+                                        ? 'bg-white/40' 
                                         : getCreditsUsedPercentage(user) > 70 
-                                        ? 'bg-gradient-to-r from-amber-500 to-amber-400' 
-                                        : 'bg-gradient-to-r from-primary to-purple-500'
+                                        ? 'bg-white/60' 
+                                        : 'bg-white/80'
                                     }`}
                                     style={{ width: `${getCreditsUsedPercentage(user)}%` }}
                                   />
@@ -580,7 +576,7 @@ export default function AdminDashboardPage() {
                           <Button
                             onClick={() => handleSubscribeUser(user.id)}
                             disabled={!selectedPlan[user.id]}
-                            className="gap-2 gradient-primary border-0 hover:shadow-lg hover:shadow-primary/25 transition-all"
+                            className="gap-2 gradient-primary text-background border-0 hover:shadow-lg transition-all"
                           >
                             <CreditCard className="h-4 w-4" />
                             {hasActiveSubscription ? 'Change Plan' : 'Subscribe'}
@@ -606,14 +602,14 @@ export default function AdminDashboardPage() {
               return (
                 <Card 
                   key={plan.id} 
-                  className={`glass-card border-0 hover-lift animate-fade-in-up ${plan.name === 'Pro' ? 'ring-2 ring-primary/50' : ''}`}
+                  className={`glass-card border-0 hover-lift animate-fade-in-up ${plan.name === 'Pro' ? 'ring-2 ring-white/30' : ''}`}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{plan.name}</CardTitle>
                       {plan.name === 'Pro' && (
-                        <Badge className="text-xs gradient-primary border-0">Popular</Badge>
+                        <Badge className="text-xs gradient-primary text-background border-0">Popular</Badge>
                       )}
                     </div>
                     <CardDescription className="text-2xl font-bold text-gradient">
@@ -634,7 +630,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Subscribers</span>
-                        <Badge variant="secondary" className="text-xs bg-primary/10 border-primary/20">
+                        <Badge variant="secondary" className="text-xs bg-white/10 border-white/20">
                           {subscribedCount} users
                         </Badge>
                       </div>
@@ -643,7 +639,7 @@ export default function AdminDashboardPage() {
                     <div className="pt-2 border-t border-border/50">
                       <Badge 
                         variant={plan.active ? 'default' : 'secondary'}
-                        className={`w-full justify-center ${plan.active ? 'gradient-primary border-0' : ''}`}
+                        className={`w-full justify-center ${plan.active ? 'gradient-primary text-background border-0' : ''}`}
                         >
                           {plan.active ? 'Active' : 'Inactive'}
                         </Badge>

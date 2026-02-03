@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Volume2, Loader2, ArrowRight, Sparkles } from 'lucide-react'
+import { Loader2, ArrowRight, Sparkles } from 'lucide-react'
+import Image from 'next/image'
 import { useToast } from '@/hooks/use-toast'
 
 export default function LoginPage() {
@@ -60,26 +61,23 @@ export default function LoginPage() {
       {/* Background Effects */}
       <div className="absolute inset-0 gradient-mesh" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary/5 to-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/3 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 w-full max-w-md animate-fade-in-up">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity" />
-              <Volume2 className="relative h-10 w-10 text-primary" />
-            </div>
+            <Image src="/logo.png" alt="RaketH Clone" width={64} height={64} className="h-16 w-16 object-contain drop-shadow-lg" />
             <span className="text-2xl font-bold">RaketH Clone</span>
           </Link>
         </div>
 
         <Card className="glass-card border-0 shadow-2xl">
           <CardHeader className="text-center space-y-2 pb-2">
-            <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mx-auto mb-2">
+            <div className="inline-flex items-center justify-center gap-2 px-3 py-1 rounded-full bg-white/10 text-foreground text-xs font-medium mx-auto mb-2">
               <Sparkles className="h-3 w-3" />
               <span>Welcome Back</span>
             </div>
@@ -98,7 +96,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="h-11 bg-background/50 border-border/50 focus:border-primary/50 transition-all duration-300"
+                  className="h-11 bg-background/50 border-border/50 focus:border-white/30 transition-all duration-300"
                 />
               </div>
 
@@ -112,13 +110,13 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
-                  className="h-11 bg-background/50 border-border/50 focus:border-primary/50 transition-all duration-300"
+                  className="h-11 bg-background/50 border-border/50 focus:border-white/30 transition-all duration-300"
                 />
               </div>
 
               <Button 
                 type="submit" 
-                className="w-full h-11 gradient-primary border-0 transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02]" 
+                className="w-full h-11 gradient-primary text-background border-0 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]" 
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -138,18 +136,18 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col space-y-4 pt-2">
             <p className="text-sm text-center text-muted-foreground">
               Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-primary font-medium hover:underline underline-offset-4 transition-colors">
+              <Link href="/signup" className="text-foreground font-medium hover:underline underline-offset-4 transition-colors">
                 Sign up
               </Link>
             </p>
             <div className="w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
             <p className="text-xs text-center text-muted-foreground">
               By clicking continue, you agree to our{' '}
-              <Link href="/privacy" className="text-primary/80 hover:text-primary transition-colors">
+              <Link href="/privacy" className="text-foreground/80 hover:text-foreground transition-colors">
                 Terms of Service
               </Link>{' '}
               and{' '}
-              <Link href="/privacy" className="text-primary/80 hover:text-primary transition-colors">
+              <Link href="/privacy" className="text-foreground/80 hover:text-foreground transition-colors">
                 Privacy Policy
               </Link>
             </p>

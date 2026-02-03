@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mic, Zap, Shield, Users, Clock, Volume2, Check, Play, Pause, ArrowRight, Sparkles, Globe, Headphones } from 'lucide-react'
+import { Mic, Zap, Shield, Users, Clock, Check, Play, Pause, ArrowRight, Sparkles, Globe, Headphones } from 'lucide-react'
+import Image from 'next/image'
 
 // Demo voices configuration
 const DEMO_VOICES = [
@@ -35,37 +36,37 @@ const FEATURES = [
     icon: Mic,
     title: 'Voice Cloning',
     description: 'Clone any voice with just a sample recording for personalized, branded content',
-    gradient: 'from-violet-500 to-purple-500',
+    gradient: 'from-white/20 to-white/5',
   },
   {
     icon: Globe,
     title: 'Multi-Language Support',
     description: 'Generate speech in multiple languages with automatic translation',
-    gradient: 'from-blue-500 to-cyan-500',
+    gradient: 'from-white/20 to-white/5',
   },
   {
     icon: Zap,
     title: 'Lightning Fast',
     description: 'Generate high-quality audio in seconds, not minutes',
-    gradient: 'from-amber-500 to-orange-500',
+    gradient: 'from-white/20 to-white/5',
   },
   {
     icon: Shield,
     title: 'Secure & Private',
     description: 'Enterprise-grade security with end-to-end encryption for all your content',
-    gradient: 'from-emerald-500 to-green-500',
+    gradient: 'from-white/20 to-white/5',
   },
   {
     icon: Clock,
     title: 'Credits Never Expire',
     description: 'Pay for characters, not subscriptions. Use your credits whenever you need',
-    gradient: 'from-pink-500 to-rose-500',
+    gradient: 'from-white/20 to-white/5',
   },
   {
     icon: Headphones,
     title: 'High Quality Audio',
     description: 'Crystal clear, natural-sounding voice output at various formats',
-    gradient: 'from-indigo-500 to-violet-500',
+    gradient: 'from-white/20 to-white/5',
   },
 ]
 
@@ -111,6 +112,8 @@ export default function Home() {
 
   useEffect(() => {
     setIsVisible(true)
+    // Force dark mode
+    document.documentElement.classList.add('dark')
   }, [])
 
   const handlePlayDemo = (demoId: string, audioFile: string) => {
@@ -146,10 +149,7 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity" />
-                <Volume2 className="relative h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-              </div>
+              <Image src="/logo.png" alt="RaketH Clone" width={48} height={48} className="h-10 w-10 sm:h-12 sm:w-12 object-contain drop-shadow-lg" />
               <span className="text-lg sm:text-xl font-bold">RaketH Clone</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-6">
@@ -159,7 +159,7 @@ export default function Home() {
               <Button variant="ghost" size="sm" onClick={() => window.location.href = '/login'} className="transition-smooth hover:scale-105">
                 Sign In
               </Button>
-              <Button size="sm" onClick={() => window.location.href = '/login'} className="gradient-primary border-0 transition-smooth hover:scale-105 hover:shadow-lg hover:shadow-primary/25">
+              <Button size="sm" onClick={() => window.location.href = '/login'} className="gradient-primary text-background border-0 transition-smooth hover:scale-105 hover:shadow-lg">
                 <span className="hidden sm:inline">Get Started</span>
                 <span className="sm:hidden">Start</span>
                 <ArrowRight className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4" />
@@ -173,16 +173,16 @@ export default function Home() {
       <section className="relative flex-1 flex items-center justify-center pt-32 pb-20 px-4 sm:px-6 lg:px-8 gradient-mesh min-h-screen">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-primary/5 to-purple-500/5 rounded-full blur-3xl" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/3 rounded-full blur-3xl" />
         </div>
 
         <div className={`container mx-auto text-center max-w-4xl relative z-10 ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm font-medium mb-8 animate-bounce-soft">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-gradient font-semibold">AI-Powered Voice Cloning</span>
+            <Sparkles className="h-4 w-4 text-foreground" />
+            <span className="text-foreground font-semibold">AI-Powered Voice Cloning</span>
           </div>
 
           {/* Main heading */}
@@ -201,7 +201,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in animate-delay-300">
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6 gradient-primary border-0 transition-bounce hover:scale-105 hover:shadow-xl hover:shadow-primary/30 group" 
+              className="text-lg px-8 py-6 gradient-primary text-background border-0 transition-bounce hover:scale-105 hover:shadow-xl group" 
               onClick={() => window.location.href = '/login'}
             >
               Get Started Free
@@ -210,23 +210,23 @@ export default function Home() {
             <Button 
               size="lg" 
               variant="outline" 
-              className="text-lg px-8 py-6 glass border-primary/20 transition-bounce hover:scale-105 hover:bg-primary/5" 
+              className="text-lg px-8 py-6 glass border-white/20 transition-bounce hover:scale-105 hover:bg-white/5" 
               onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Listen to Demo
-              <Volume2 className="ml-2 h-5 w-5" />
+              <Headphones className="ml-2 h-5 w-5" />
             </Button>
           </div>
 
           {/* Trust indicators */}
           <p className="text-sm text-muted-foreground mt-8 animate-fade-in animate-delay-400">
             <span className="inline-flex items-center gap-2">
-              <Check className="h-4 w-4 text-green-500" />
+              <Check className="h-4 w-4 text-foreground" />
               No credit card required
             </span>
             <span className="mx-3 text-border">•</span>
             <span className="inline-flex items-center gap-2">
-              <Check className="h-4 w-4 text-green-500" />
+              <Check className="h-4 w-4 text-foreground" />
               Credits never expire
             </span>
           </p>
@@ -245,7 +245,7 @@ export default function Home() {
         <div className="absolute inset-0 gradient-mesh opacity-50" />
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 text-foreground text-sm font-medium mb-4">
               Features
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
@@ -284,7 +284,7 @@ export default function Home() {
       <section id="demo" className="py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 text-foreground text-sm font-medium mb-4">
               Live Demo
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
@@ -305,7 +305,7 @@ export default function Home() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{demo.name}</CardTitle>
-                    <span className="text-xs px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary font-medium">
+                    <span className="text-xs px-3 py-1 rounded-full bg-white/10 text-foreground font-medium">
                       {demo.language}
                     </span>
                   </div>
@@ -323,8 +323,8 @@ export default function Home() {
                     variant={playingId === demo.id ? 'default' : 'outline'}
                     className={`w-full gap-2 transition-all duration-300 ${
                       playingId === demo.id 
-                        ? 'gradient-primary border-0 shadow-lg shadow-primary/25' 
-                        : 'hover:border-primary/50 hover:bg-primary/5'
+                        ? 'gradient-primary text-background border-0 shadow-lg' 
+                        : 'hover:border-white/30 hover:bg-white/5'
                     }`}
                   >
                     {playingId === demo.id ? (
@@ -351,7 +351,7 @@ export default function Home() {
         <div className="absolute inset-0 gradient-mesh opacity-30" />
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 text-foreground text-sm font-medium mb-4">
               Pricing
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
@@ -367,7 +367,7 @@ export default function Home() {
               <Card 
                 key={plan.name}
                 className={`glass-card hover-lift border-0 overflow-hidden relative ${
-                  plan.popular ? 'ring-2 ring-primary shadow-xl shadow-primary/20 scale-105' : ''
+                  plan.popular ? 'ring-2 ring-white/30 shadow-xl scale-105' : ''
                 }`}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -378,7 +378,7 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl">{plan.name}</CardTitle>
                     {plan.popular && (
-                      <span className="px-3 py-1 rounded-full gradient-primary text-white text-xs font-medium">
+                      <span className="px-3 py-1 rounded-full gradient-primary text-black text-xs font-medium">
                         Popular
                       </span>
                     )}
@@ -392,9 +392,9 @@ export default function Home() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="mb-4 p-3 rounded-xl bg-primary/5 border border-primary/10">
+                  <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/10">
                     <span className="text-sm text-muted-foreground">Characters</span>
-                    <p className="text-2xl font-bold text-gradient">{plan.credits}</p>
+                    <p className="text-2xl font-bold text-foreground">{plan.credits}</p>
                   </div>
                   <ul className="space-y-3">
                     {plan.features.map((feature) => (
@@ -412,8 +412,8 @@ export default function Home() {
                     variant={plan.popular ? 'default' : 'outline'} 
                     className={`w-full transition-all duration-300 ${
                       plan.popular 
-                        ? 'gradient-primary border-0 hover:shadow-lg hover:shadow-primary/25' 
-                        : 'hover:border-primary/50 hover:bg-primary/5'
+                        ? 'gradient-primary text-background border-0 hover:shadow-lg' 
+                        : 'hover:border-white/30 hover:bg-white/5'
                     }`}
                     onClick={() =>
                       window.open(
@@ -434,24 +434,23 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 gradient-primary opacity-90" />
+      <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden glass-card border-y border-white/10">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/10" />
         <div className="absolute inset-0">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
         </div>
         <div className="container mx-auto text-center max-w-3xl relative z-10">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 text-white">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 text-foreground">
             Ready to Clone Your Voice?
           </h2>
-          <p className="text-lg text-white/80 mb-10 max-w-xl mx-auto">
+          <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
             Join thousands of content creators using AI voice technology to scale their production
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              variant="secondary" 
-              className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90 transition-bounce hover:scale-105 hover:shadow-xl"
+              className="text-lg px-8 py-6 gradient-primary text-background border-0 transition-bounce hover:scale-105 hover:shadow-xl"
               onClick={() => window.location.href = '/login'}
             >
               Get Started Now
@@ -460,7 +459,7 @@ export default function Home() {
             <Button 
               size="lg" 
               variant="outline" 
-              className="text-lg px-8 py-6 border-white/30 text-white hover:bg-white/10 transition-bounce hover:scale-105"
+              className="text-lg px-8 py-6 border-white/20 text-foreground hover:bg-white/5 transition-bounce hover:scale-105"
             >
               Contact Sales
             </Button>
@@ -471,50 +470,23 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t py-12 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="container mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div className="md:col-span-1">
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 rounded-lg blur opacity-50" />
-                  <Volume2 className="relative h-6 w-6 text-primary" />
-                </div>
+                <Image src="/logo.png" alt="RaketH Clone" width={40} height={40} className="h-10 w-10 object-contain drop-shadow-lg" />
                 <span className="text-lg font-bold">RaketH Clone</span>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
                 Transform text into realistic speech with AI-powered voice cloning technology.
               </p>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><a href="#features" className="hover:text-primary transition-colors cursor-pointer">Features</a></li>
-                <li><a href="#pricing" className="hover:text-primary transition-colors cursor-pointer">Pricing</a></li>
+                <li><a href="#features" className="hover:text-foreground transition-colors cursor-pointer">Features</a></li>
+                <li><a href="#pricing" className="hover:text-foreground transition-colors cursor-pointer">Pricing</a></li>
+                <li><a href="#demo" className="hover:text-foreground transition-colors cursor-pointer">Demo</a></li>
               </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-3 text-sm text-muted-foreground">
-                <li>
-                  <a href="/privacy" className="hover:text-primary transition-colors cursor-pointer">Privacy Policy</a>
-                </li>
-                <li>
-                  <a href="/privacy" className="hover:text-primary transition-colors cursor-pointer">Terms of Service</a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          
-          {/* Privacy & Terms Summary */}
-          <div className="border-t pt-8 pb-6">
-            <div className="grid md:grid-cols-2 gap-6 text-xs text-muted-foreground mb-6">
-              <div>
-                <h5 className="font-semibold text-foreground mb-2">Privacy</h5>
-                <p>We collect only essential data to provide our services. Your voice clones and generated audio are stored securely and never shared with third parties. All data is encrypted in transit and at rest.</p>
-              </div>
-              <div>
-                <h5 className="font-semibold text-foreground mb-2">Terms</h5>
-                <p>By using our service, you agree to use voice cloning responsibly and legally. You retain ownership of your content and voice clones. Credits are non-refundable but never expire.</p>
-              </div>
             </div>
           </div>
 
@@ -522,6 +494,10 @@ export default function Home() {
             <p className="text-sm text-muted-foreground">
               © 2026 RaketH Clone. All rights reserved.
             </p>
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+              <a href="/privacy" className="hover:text-foreground transition-colors">Terms of Service</a>
+            </div>
           </div>
         </div>
       </footer>
