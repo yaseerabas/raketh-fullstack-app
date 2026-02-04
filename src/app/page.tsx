@@ -188,7 +188,7 @@ export default function Home() {
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2 group">
               <Image src="/logo.png" alt="RaketH Clone" width={48} height={48} className="h-10 w-10 sm:h-12 sm:w-12 object-contain drop-shadow-lg" />
-              <span className="text-lg sm:text-xl font-bold">RaketH Clone</span>
+              <span className="text-lg sm:text-xl font-bold">RaketH.Clone</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-6">
               <a href="#features" className="hidden md:inline-block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer">Features</a>
@@ -216,58 +216,107 @@ export default function Home() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/3 rounded-full blur-3xl" />
         </div>
 
-        <div className={`container mx-auto text-center max-w-4xl relative z-10 ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm font-medium mb-8 animate-bounce-soft">
-            <Sparkles className="h-4 w-4 text-foreground" />
-            <span className="text-foreground font-semibold">AI-Powered Voice Cloning</span>
+        <div className={`container mx-auto relative z-10 ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
+          <div className="grid lg:grid-cols-[1.1fr_0.9fr] items-center gap-12">
+            <div className="text-center lg:text-left">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm font-medium mb-8 animate-bounce-soft">
+                <Sparkles className="h-4 w-4 text-foreground" />
+                <span className="text-foreground font-semibold">AI-Powered Voice Cloning</span>
+              </div>
+
+              {/* Main heading */}
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
+                <span className="block">RaketH Clone</span>
+                <span className="block text-gradient mt-2">Studio-Grade Voice AI</span>
+              </h1>
+
+              {/* Description */}
+              <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed animate-fade-in animate-delay-200">
+                Launch lifelike voiceovers in seconds with rich controls, custom voices, and multi-language output.
+                Turn scripts into studio-ready audio without the studio.
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-in animate-delay-300">
+                <Button 
+                  size="lg" 
+                  className="text-lg px-8 py-6 gradient-primary text-background border-0 transition-bounce hover:scale-105 hover:shadow-xl group" 
+                  onClick={() => window.location.href = '/login'}
+                >
+                  Start Generating
+                  <Mic className="ml-2 h-5 w-5 group-hover:animate-bounce-soft" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="text-lg px-8 py-6 glass border-white/20 transition-bounce hover:scale-105 hover:bg-white/5" 
+                  onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  Hear the Demo
+                  <Headphones className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Trust indicators */}
+              <p className="text-sm text-muted-foreground mt-8 animate-fade-in animate-delay-400">
+                <span className="inline-flex items-center gap-2">
+                  <Check className="h-4 w-4 text-foreground" />
+                  No credit card required
+                </span>
+                <span className="mx-3 text-border">•</span>
+                <span className="inline-flex items-center gap-2">
+                  <Check className="h-4 w-4 text-foreground" />
+                  Generate and Clone voice accurately
+                </span>
+              </p>
+
+              <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-4 text-left">
+                <div className="glass-card border-0 px-4 py-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Accuracy</p>
+                  <p className="text-lg font-semibold">3-second voice cloning</p>
+                </div>
+                <div className="glass-card border-0 px-4 py-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Languages</p>
+                  <p className="text-lg font-semibold">Support 10 Languages</p>
+                </div>
+                <div className="glass-card border-0 px-4 py-3">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Quality</p>
+                  <p className="text-lg font-semibold">Studio HQ Output</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute -inset-6 bg-gradient-to-br from-white/10 via-white/5 to-transparent blur-2xl rounded-[40px]" />
+              <div className="relative glass-card border-0 p-4 sm:p-6">
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+                  <Image
+                    src="/images/hero.png"
+                    alt="RaketH Clone interface preview"
+                    width={720}
+                    height={540}
+                    className="w-full h-auto object-contain"
+                    priority
+                  />
+                </div>
+                <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-xl border border-white/10 bg-white/5 py-3">
+                    <Sparkles className="mx-auto h-4 w-4 text-foreground" />
+                    <p className="mt-2 text-xs text-muted-foreground">Generate/Clone</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 py-3">
+                    <Mic className="mx-auto h-4 w-4 text-foreground" />
+                    <p className="mt-2 text-xs text-muted-foreground">Voice Options</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 py-3">
+                    <ArrowRight className="mx-auto h-4 w-4 text-foreground" />
+                    <p className="mt-2 text-xs text-muted-foreground">Download</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Main heading */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-            <span className="block">Clone & Transform</span>
-            <span className="block text-gradient mt-2">Your Voice Into AI</span>
-          </h1>
-
-          {/* Description */}
-          <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed animate-fade-in animate-delay-200">
-            Create professional voice recordings from text using advanced AI voice cloning technology. 
-            Clone any voice and generate realistic speech in multiple languages.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in animate-delay-300">
-            <Button 
-              size="lg" 
-              className="text-lg px-8 py-6 gradient-primary text-background border-0 transition-bounce hover:scale-105 hover:shadow-xl group" 
-              onClick={() => window.location.href = '/login'}
-            >
-              Get Started Free
-              <Mic className="ml-2 h-5 w-5 group-hover:animate-bounce-soft" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="text-lg px-8 py-6 glass border-white/20 transition-bounce hover:scale-105 hover:bg-white/5" 
-              onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Listen to Demo
-              <Headphones className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Trust indicators */}
-          <p className="text-sm text-muted-foreground mt-8 animate-fade-in animate-delay-400">
-            <span className="inline-flex items-center gap-2">
-              <Check className="h-4 w-4 text-foreground" />
-              No credit card required
-            </span>
-            <span className="mx-3 text-border">•</span>
-            <span className="inline-flex items-center gap-2">
-              <Check className="h-4 w-4 text-foreground" />
-              Credits never expire
-            </span>
-          </p>
         </div>
 
         {/* Scroll indicator */}

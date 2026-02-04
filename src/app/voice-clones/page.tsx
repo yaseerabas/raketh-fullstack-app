@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Volume2, Upload, Trash2, Play, Loader2, ArrowLeft, Mic, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import Image from 'next/image'
 
 interface Voice {
   id: string
@@ -194,10 +195,7 @@ export default function VoiceClonesPage() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex items-center gap-2 group">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity" />
-                  <Volume2 className="relative h-6 w-6 text-primary" />
-                </div>
+                <Image src="/logo.png" alt="RaketH Clone" width={40} height={40} className="h-10 w-10 object-contain drop-shadow-lg" />
                 <span className="font-bold">RaketH Clone</span>
               </div>
             </div>

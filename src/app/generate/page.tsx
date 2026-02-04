@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Volume2, Loader2, Play, AlertCircle, ArrowLeft, Mic, Languages, Upload } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import Image from 'next/image'
 
 interface Voice {
   id: string
@@ -310,30 +311,28 @@ export default function GeneratePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgba(10,10,10,0.7)] backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex h-16 items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-primary/10 transition-colors">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="flex items-center gap-2 group">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity" />
-                  <Volume2 className="relative h-6 w-6 text-primary" />
-                </div>
-                <span className="font-bold">RaketH Clone</span>
+              <div className="flex items-center gap-2 group min-w-0">
+                <Image src="/logo.png" alt="RaketH Clone" width={40} height={40} className="h-10 w-10 object-contain drop-shadow-lg" />
+                <span className="font-bold truncate">RaketH Clone</span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
               <Button
                 variant="outline"
                 onClick={() => router.push('/voice-clones')}
-                className="gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
+                className="gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all px-2 sm:px-4"
               >
                 <Mic className="h-4 w-4" />
-                Voice Clones
+                <span className="hidden sm:inline">Voice Clones</span>
               </Button>
-              <Button variant="outline" onClick={() => router.push('/dashboard')} className="hover:border-primary/50 hover:bg-primary/5 transition-all">
-                Dashboard
+              <Button variant="outline" onClick={() => router.push('/dashboard')} className="hover:border-primary/50 hover:bg-primary/5 transition-all px-2 sm:px-4">
+                <span className="hidden sm:inline">Dashboard</span>
+                <span className="sm:hidden">Home</span>
               </Button>
             </div>
           </div>
