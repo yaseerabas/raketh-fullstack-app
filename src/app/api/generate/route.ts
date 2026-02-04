@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Double-check expiration (in case it just expired)
-    if (new Date(subscription.expiresAt) < new Date()) {
+    if (!subscription.expiresAt || new Date(subscription.expiresAt) < new Date()) {
       // Mark as expired
       await db.subscription.update({
         where: { id: subscription.id },
