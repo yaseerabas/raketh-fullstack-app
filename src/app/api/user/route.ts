@@ -105,7 +105,9 @@ export async function GET(req: NextRequest) {
         creditsUsed,
         creditsRemaining,
         creditsPercentage,
-        daysRemaining: Math.max(0, Math.ceil((new Date(subscription.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
+        daysRemaining: subscription.expiresAt
+          ? Math.max(0, Math.ceil((new Date(subscription.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+          : null,
         plan: plan ? {
           id: plan.id,
           name: plan.name,
