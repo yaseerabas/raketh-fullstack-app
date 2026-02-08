@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Volume2, Loader2, Play, AlertCircle, ArrowLeft, Mic, Languages, Upload } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import Image from 'next/image'
+
+const MAX_TEXT_LENGTH = 50000
 
 interface Voice {
   id: string
@@ -72,8 +73,13 @@ export default function GeneratePage() {
   const [selectedVoice, setSelectedVoice] = useState<string>('')
   const [text, setText] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedAudio, setGeneratedAudio] = useState<{ url: string; duration: number; base64?: string } | null>(null)
+  const [streamProgress, setStreamProgress] = useState<string | null>(null)
+  const [generatedAudio, setGeneratedAudio] = useState<{ url: string; duration: number; savedUrl?: string } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isVoicesLoading, setIsVoicesLoading] = useState(false)
+  const [isLanguagesLoading, setIsLanguagesLoading] = useState(false)
+  const [voicesLoaded, setVoicesLoaded] = useState(false)
+  const [languagesLoaded, setLanguagesLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState('tts')
   const [ttsLanguage, setTtsLanguage] = useState('en')
   const [sourceLanguage, setSourceLanguage] = useState('eng_Latn')
@@ -123,37 +129,6 @@ export default function GeneratePage() {
         router.push('/dashboard')
         return
       }
-
-      // Fetch voices and languages in parallel - handle failures gracefully
-      try {
-        const [voicesResponse, languagesResponse] = await Promise.all([
-          fetch('/api/voice-clones'),
-          fetch('/api/languages')
-        ])
-
-        if (voicesResponse.ok) {
-          const voicesData = await voicesResponse.json()
-          setVoices(voicesData.voices || [])
-          if (voicesData.voices?.length > 0) {
-            setSelectedVoice(voicesData.voices[0].voiceId)
-          }
-        }
-
-        if (languagesResponse.ok) {
-          const langData = await languagesResponse.json()
-          setLanguages(langData)
-          if (langData.translation?.languages?.length > 0) {
-            setSourceLanguage(langData.translation.languages[0].code)
-          }
-          if (langData.tts?.languages?.length > 0) {
-            setTargetLanguage(langData.tts.languages[0].code)
-            setTtsLanguage(langData.tts.languages[0].code)
-          }
-        }
-      } catch (fetchError) {
-        console.error('Error fetching voices/languages:', fetchError)
-        // Continue anyway - voices have defaults, languages have fallback
-      }
     } catch (error) {
       console.error('Error loading page data:', error)
       toast({
@@ -163,6 +138,64 @@ export default function GeneratePage() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchVoices = async () => {
+    if (voicesLoaded || isVoicesLoading) return
+    setIsVoicesLoading(true)
+    try {
+      const response = await fetch('/api/voice-clones')
+      if (!response.ok) {
+        throw new Error('Failed to load voice clones')
+      }
+
+      const voicesData = await response.json()
+      setVoices(voicesData.voices || [])
+      if (!selectedVoice && voicesData.voices?.length > 0) {
+        setSelectedVoice(voicesData.voices[0].voiceId)
+      }
+      setVoicesLoaded(true)
+    } catch (error) {
+      console.error('Error fetching voices:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load voice clones',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsVoicesLoading(false)
+    }
+  }
+
+  const fetchLanguages = async () => {
+    if (languagesLoaded || isLanguagesLoading) return
+    setIsLanguagesLoading(true)
+    try {
+      const response = await fetch('/api/languages')
+      if (!response.ok) {
+        throw new Error('Failed to load languages')
+      }
+
+      const langData = await response.json()
+      setLanguages(langData)
+      if (langData.translation?.languages?.length > 0) {
+        setSourceLanguage(langData.translation.languages[0].code)
+      }
+      if (langData.tts?.languages?.length > 0) {
+        setTargetLanguage(langData.tts.languages[0].code)
+        setTtsLanguage(langData.tts.languages[0].code)
+      }
+      setLanguagesLoaded(true)
+    } catch (error) {
+      console.error('Error fetching languages:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load languages',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLanguagesLoading(false)
     }
   }
 
@@ -203,8 +236,18 @@ export default function GeneratePage() {
       return
     }
 
+    if (text.length > MAX_TEXT_LENGTH) {
+      toast({
+        title: 'Text Too Long',
+        description: `Maximum ${MAX_TEXT_LENGTH.toLocaleString()} characters allowed. You have ${text.length.toLocaleString()}.`,
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsGenerating(true)
     setGeneratedAudio(null)
+    setStreamProgress(null)
 
     try {
       const payload: any = {
@@ -220,39 +263,74 @@ export default function GeneratePage() {
         payload.targetLanguage = targetLanguage
       }
 
-      const response = await fetch('/api/generate', {
+      setStreamProgress('Connecting to TTS service...')
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000)
+
+      const response = await fetch('/api/generate/stream', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setGeneratedAudio({
-          url: data.url,
-          duration: data.duration,
-          base64: data.base64
-        })
-        toast({
-          title: 'Success',
-          description: 'Voice generated successfully!',
-        })
-      } else {
-        const error = await response.json()
-        const errorMsg = error.message || error.error || 'Failed to generate voice'
-        throw new Error(errorMsg)
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({ message: 'Generation failed' }))
+        throw new Error(errBody.message || errBody.error || 'Failed to generate voice')
       }
+
+      const savedAudioUrl = response.headers.get('X-Audio-Url') || ''
+
+      setStreamProgress('Receiving audio stream...')
+
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No response stream')
+
+      const chunks: Uint8Array[] = []
+      let receivedBytes = 0
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+        receivedBytes += value.length
+        setStreamProgress(`Streaming audio... ${Math.round(receivedBytes / 1024)} KB`)
+      }
+
+      // Combine all chunks into one ArrayBuffer, then create a Blob
+      const combined = new Uint8Array(receivedBytes)
+      let offset = 0
+      for (const chunk of chunks) {
+        combined.set(chunk, offset)
+        offset += chunk.length
+      }
+      const audioBlob = new Blob([combined.buffer as ArrayBuffer], { type: 'audio/wav' })
+      const blobUrl = URL.createObjectURL(audioBlob)
+
+      setGeneratedAudio({
+        url: blobUrl,
+        duration: Math.max(1, text.length / 15),
+        savedUrl: savedAudioUrl,
+      })
+
+      toast({
+        title: 'Success',
+        description: `Voice generated! (${Math.round(audioBlob.size / 1024)} KB)`,
+      })
     } catch (error: any) {
       console.error('Error generating voice:', error)
+      const isAbort = error.name === 'AbortError'
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to generate voice',
+        title: isAbort ? 'Timeout' : 'Error',
+        description: isAbort ? 'Request timed out. Try shorter text.' : (error.message || 'Failed to generate voice'),
         variant: 'destructive',
       })
     } finally {
       setIsGenerating(false)
+      setStreamProgress(null)
     }
   }
 
@@ -311,28 +389,30 @@ export default function GeneratePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgba(10,10,10,0.7)] backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-primary/10 transition-colors">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="flex items-center gap-2 group min-w-0">
-                <Image src="/logo.png" alt="RaketH Clone" width={40} height={40} className="h-10 w-10 object-contain drop-shadow-lg" />
-                <span className="font-bold truncate">RaketH Clone</span>
+              <div className="flex items-center gap-2 group">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity" />
+                  <Volume2 className="relative h-6 w-6 text-primary" />
+                </div>
+                <span className="font-bold">RaketH Clone</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 onClick={() => router.push('/voice-clones')}
-                className="gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all px-2 sm:px-4"
+                className="gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
               >
                 <Mic className="h-4 w-4" />
-                <span className="hidden sm:inline">Voice Clones</span>
+                Voice Clones
               </Button>
-              <Button variant="outline" onClick={() => router.push('/dashboard')} className="hover:border-primary/50 hover:bg-primary/5 transition-all px-2 sm:px-4">
-                <span className="hidden sm:inline">Dashboard</span>
-                <span className="sm:hidden">Home</span>
+              <Button variant="outline" onClick={() => router.push('/dashboard')} className="hover:border-primary/50 hover:bg-primary/5 transition-all">
+                Dashboard
               </Button>
             </div>
           </div>
@@ -386,16 +466,28 @@ export default function GeneratePage() {
                   {/* Language Selection */}
                   <div className="space-y-2">
                     <Label htmlFor="tts-language">Language</Label>
-                    <Select value={ttsLanguage} onValueChange={setTtsLanguage}>
+                    <Select
+                      value={ttsLanguage}
+                      onValueChange={setTtsLanguage}
+                      onOpenChange={(open) => {
+                        if (open) fetchLanguages()
+                      }}
+                    >
                       <SelectTrigger id="tts-language">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {getTTSLanguageOptions().map((lang) => (
-                          <SelectItem key={lang.value} value={lang.value}>
-                            {lang.label}
+                        {isLanguagesLoading && !languagesLoaded ? (
+                          <SelectItem value="loading" disabled>
+                            Loading languages...
                           </SelectItem>
-                        ))}
+                        ) : (
+                          getTTSLanguageOptions().map((lang) => (
+                            <SelectItem key={lang.value} value={lang.value}>
+                              {lang.label}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -403,28 +495,44 @@ export default function GeneratePage() {
                   {/* Voice Selection */}
                   <div className="space-y-2">
                     <Label htmlFor="voice-tts">Select Voice</Label>
-                    <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                    <Select
+                      value={selectedVoice}
+                      onValueChange={setSelectedVoice}
+                      onOpenChange={(open) => {
+                        if (open) fetchVoices()
+                      }}
+                    >
                       <SelectTrigger id="voice-tts">
                         <SelectValue placeholder="Select a voice" />
                       </SelectTrigger>
                       <SelectContent>
-                        {voices.map((voice) => (
-                          <SelectItem key={voice.id} value={voice.voiceId}>
-                            <div className="flex items-center gap-2">
-                              <span>{voice.name}</span>
-                              {voice.isDefault && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Default
-                                </Badge>
-                              )}
-                              {!voice.available && (
-                                <Badge variant="destructive" className="text-xs">
-                                  Unavailable
-                                </Badge>
-                              )}
-                            </div>
+                        {isVoicesLoading && !voicesLoaded ? (
+                          <SelectItem value="loading" disabled>
+                            Loading voices...
                           </SelectItem>
-                        ))}
+                        ) : voices.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            No voices available
+                          </SelectItem>
+                        ) : (
+                          voices.map((voice) => (
+                            <SelectItem key={voice.id} value={voice.voiceId}>
+                              <div className="flex items-center gap-2">
+                                <span>{voice.name}</span>
+                                {voice.isDefault && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Default
+                                  </Badge>
+                                )}
+                                {!voice.available && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Unavailable
+                                  </Badge>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
 
@@ -447,12 +555,15 @@ export default function GeneratePage() {
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       rows={6}
-                      maxLength={10000}
+                      maxLength={MAX_TEXT_LENGTH}
                       className="resize-none rounded-xl border-border/50 bg-muted/30 focus:border-primary/50 focus:ring-primary/20 transition-all"
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Enter text you want to convert</span>
-                      <span className={text.length > 9000 ? 'text-orange-500' : ''}>{text.length}/10000</span>
+                      <span>{text.length > 2000 ? 'Uses streaming for faster delivery' : 'Enter text you want to convert'}</span>
+                      <span className={
+                        text.length > MAX_TEXT_LENGTH * 0.95 ? 'text-red-500 font-medium' :
+                        text.length > MAX_TEXT_LENGTH * 0.8 ? 'text-orange-500' : ''
+                      }>{text.length.toLocaleString()}/{MAX_TEXT_LENGTH.toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -466,7 +577,7 @@ export default function GeneratePage() {
                     {isGenerating ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Generating Audio...
+                        {streamProgress || 'Generating Audio...'}
                       </>
                     ) : (
                       <>
@@ -475,9 +586,9 @@ export default function GeneratePage() {
                       </>
                     )}
                   </Button>
-                  {isGenerating && text.length > 500 && (
+                  {isGenerating && (
                     <p className="text-sm text-muted-foreground text-center">
-                      Long text may take up to a few minutes to process. Please wait...
+                      Audio is streaming — please wait for download to finish.
                     </p>
                   )}
                 </CardContent>
@@ -503,32 +614,56 @@ export default function GeneratePage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="source-lang">Source Language</Label>
-                      <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
+                      <Select
+                        value={sourceLanguage}
+                        onValueChange={setSourceLanguage}
+                        onOpenChange={(open) => {
+                          if (open) fetchLanguages()
+                        }}
+                      >
                         <SelectTrigger id="source-lang">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {getTranslationLanguageOptions().map((lang) => (
-                            <SelectItem key={lang.value} value={lang.value}>
-                              {lang.label}
+                          {isLanguagesLoading && !languagesLoaded ? (
+                            <SelectItem value="loading" disabled>
+                              Loading languages...
                             </SelectItem>
-                          ))}
+                          ) : (
+                            getTranslationLanguageOptions().map((lang) => (
+                              <SelectItem key={lang.value} value={lang.value}>
+                                {lang.label}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="target-lang">Target Language</Label>
-                      <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                      <Select
+                        value={targetLanguage}
+                        onValueChange={setTargetLanguage}
+                        onOpenChange={(open) => {
+                          if (open) fetchLanguages()
+                        }}
+                      >
                         <SelectTrigger id="target-lang">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {getTranslationLanguageOptions().map((lang) => (
-                            <SelectItem key={lang.value} value={lang.value}>
-                              {lang.label}
+                          {isLanguagesLoading && !languagesLoaded ? (
+                            <SelectItem value="loading" disabled>
+                              Loading languages...
                             </SelectItem>
-                          ))}
+                          ) : (
+                            getTranslationLanguageOptions().map((lang) => (
+                              <SelectItem key={lang.value} value={lang.value}>
+                                {lang.label}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -537,28 +672,44 @@ export default function GeneratePage() {
                   {/* Voice Selection */}
                   <div className="space-y-2">
                     <Label htmlFor="voice-translate">Select Voice</Label>
-                    <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                    <Select
+                      value={selectedVoice}
+                      onValueChange={setSelectedVoice}
+                      onOpenChange={(open) => {
+                        if (open) fetchVoices()
+                      }}
+                    >
                       <SelectTrigger id="voice-translate">
                         <SelectValue placeholder="Select a voice" />
                       </SelectTrigger>
                       <SelectContent>
-                        {voices.map((voice) => (
-                          <SelectItem key={voice.id} value={voice.voiceId}>
-                            <div className="flex items-center gap-2">
-                              <span>{voice.name}</span>
-                              {voice.isDefault && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Default
-                                </Badge>
-                              )}
-                              {!voice.available && (
-                                <Badge variant="destructive" className="text-xs">
-                                  Unavailable
-                                </Badge>
-                              )}
-                            </div>
+                        {isVoicesLoading && !voicesLoaded ? (
+                          <SelectItem value="loading" disabled>
+                            Loading voices...
                           </SelectItem>
-                        ))}
+                        ) : voices.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            No voices available
+                          </SelectItem>
+                        ) : (
+                          voices.map((voice) => (
+                            <SelectItem key={voice.id} value={voice.voiceId}>
+                              <div className="flex items-center gap-2">
+                                <span>{voice.name}</span>
+                                {voice.isDefault && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Default
+                                  </Badge>
+                                )}
+                                {!voice.available && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Unavailable
+                                  </Badge>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
 
@@ -581,12 +732,15 @@ export default function GeneratePage() {
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       rows={6}
-                      maxLength={10000}
+                      maxLength={MAX_TEXT_LENGTH}
                       className="resize-none rounded-xl border-border/50 bg-muted/30 focus:border-primary/50 focus:ring-primary/20 transition-all"
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Enter text you want to translate</span>
-                      <span className={text.length > 9000 ? 'text-orange-500' : ''}>{text.length}/10000</span>
+                      <span>{text.length > 2000 ? 'Uses streaming for faster delivery' : 'Enter text you want to translate'}</span>
+                      <span className={
+                        text.length > MAX_TEXT_LENGTH * 0.95 ? 'text-red-500 font-medium' :
+                        text.length > MAX_TEXT_LENGTH * 0.8 ? 'text-orange-500' : ''
+                      }>{text.length.toLocaleString()}/{MAX_TEXT_LENGTH.toLocaleString()}</span>
                     </div>
                   </div>
 
@@ -600,7 +754,7 @@ export default function GeneratePage() {
                     {isGenerating ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Translating & Generating...
+                        {streamProgress || 'Translating & Generating...'}
                       </>
                     ) : (
                       <>
@@ -609,9 +763,9 @@ export default function GeneratePage() {
                       </>
                     )}
                   </Button>
-                  {isGenerating && text.length > 500 && (
+                  {isGenerating && (
                     <p className="text-sm text-muted-foreground text-center">
-                      Long text may take up to a few minutes to process. Please wait...
+                      Audio is streaming — please wait for download to finish.
                     </p>
                   )}
                 </CardContent>

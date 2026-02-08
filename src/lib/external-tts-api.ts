@@ -13,6 +13,11 @@ const API_KEY = process.env.EXTERNAL_TTS_API_KEY || ''
 const REQUEST_TIMEOUT = 300000 // 5 minutes for long TTS generation
 
 /**
+ * Maximum text length per API request (from external API docs)
+ */
+export const MAX_TEXT_LENGTH = 50000
+
+/**
  * Helper function to create headers with optional API key
  */
 function getHeaders(contentType: string = 'application/json'): HeadersInit {
@@ -308,6 +313,38 @@ export async function generateTTS(text: string, speakerId: string = DEFAULT_SPEA
 }
 
 /**
+ * Stream TTS audio directly — returns the raw Response for proxying to the client.
+ * The caller must NOT buffer; pipe response.body straight through.
+ * This keeps data flowing so Cloudflare / RunPod proxies never see an idle connection.
+ */
+export async function streamTTS(
+  text: string,
+  speakerId: string = DEFAULT_SPEAKER_ID,
+  language: string = 'en'
+): Promise<Response> {
+  if (text.length > MAX_TEXT_LENGTH) {
+    throw new Error(`Text exceeds maximum length of ${MAX_TEXT_LENGTH} characters. Received: ${text.length}.`)
+  }
+
+  const response = await fetchWithTimeout(`${API_BASE_URL}/tts/stream`, {
+    method: 'POST',
+    headers: getHeaders('application/json'),
+    body: JSON.stringify({ text, speaker_id: speakerId, language }),
+  })
+
+  if (response.status === 413) {
+    const err = await response.json().catch(() => ({ detail: 'Text too large' }))
+    throw new Error(err.detail || 'Text too large')
+  }
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`TTS streaming failed: ${errorText}`)
+  }
+
+  return response
+}
+
+/**
  * Translate text and generate speech with streaming response
  * Uses /translate-tts/stream endpoint for combined translation + TTS
  * @param text - The text to translate and convert to speech
@@ -339,6 +376,37 @@ export async function generateTranslateTTS(
   }
 
   return response.blob()
+}
+
+/**
+ * Stream Translate-TTS audio directly — returns the raw Response for proxying.
+ */
+export async function streamTranslateTTS(
+  text: string,
+  speakerId: string,
+  srcLang: string,
+  tgtLang: string
+): Promise<Response> {
+  if (text.length > MAX_TEXT_LENGTH) {
+    throw new Error(`Text exceeds maximum length of ${MAX_TEXT_LENGTH} characters. Received: ${text.length}.`)
+  }
+
+  const response = await fetchWithTimeout(`${API_BASE_URL}/translate-tts/stream`, {
+    method: 'POST',
+    headers: getHeaders('application/json'),
+    body: JSON.stringify({ text, speaker_id: speakerId, src_lang: srcLang, tgt_lang: tgtLang }),
+  })
+
+  if (response.status === 413) {
+    const err = await response.json().catch(() => ({ detail: 'Text too large' }))
+    throw new Error(err.detail || 'Text too large')
+  }
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Translate-TTS streaming failed: ${errorText}`)
+  }
+
+  return response
 }
 
 // ==========================================

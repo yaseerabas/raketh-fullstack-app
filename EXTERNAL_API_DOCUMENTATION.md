@@ -156,8 +156,11 @@ Response 200:
 Notes:
 - `language` accepts only these 10 supported languages: en, zh, ja, ko, de, fr, ru, pt, es, it.
 - Download the audio with: `curl -o out.wav http://localhost:8000/audio/<filename>.wav`
+- Maximum input size: 50,000 characters per request.
+- Long texts are chunked at ~2,000 characters per chunk for efficiency.
 
 Errors:
+- 413 Text exceeds maximum length of 50000 characters. Received: <count> characters.
 - 500 TTS synthesis failed: <reason>
 
 Curl example:
@@ -193,13 +196,15 @@ Request body:
 Response: `audio/wav` stream (binary audio data)
 
 Notes:
-- Use this endpoint for long texts (> 500 characters) or when the standard `/tts` endpoint times out.
+- Use this endpoint for long texts (> 2,000 characters) or when the standard `/tts` endpoint times out.
 - The response streams audio chunks as they are generated, so playback can begin immediately.
 - Audio is returned as WAV format (PCM 16-bit, mono).
 - `language` accepts only these 10 supported languages: en, zh, ja, ko, de, fr, ru, pt, es, it.
 - Supports voice cloning via `speaker_id` if a voice has been uploaded.
+- Maximum input size: 50,000 characters per request.
 
 Errors:
+- 413 Text exceeds maximum length of 50000 characters. Received: <count> characters.
 - 500 TTS streaming failed: <reason>
 
 Curl example (save to file):
@@ -444,7 +449,7 @@ curl -o output.wav "http://localhost:8000/audio/<filename>.wav"
 ## Notes & Tips
 
 - To use a cloned voice in TTS, first upload a voice for `user_id`, then pass that `speaker_id` in /tts or /translate-tts requests.
-- Long texts are automatically chunked for quality and memory efficiency; the API returns a single concatenated .wav.
+- Long texts are automatically chunked at ~2,000 characters for quality and memory efficiency; the API returns a single concatenated .wav.
 - **For long audio generation**, use `/tts/stream` or `/translate-tts/stream` instead of the regular endpoints to prevent HTTP timeouts.
 - The `language` parameter is optional in `/translate-tts` endpoints - it auto-detects from `tgt_lang`.
 - Health endpoint helps validate model readiness and GPU availability before high-volume requests.
