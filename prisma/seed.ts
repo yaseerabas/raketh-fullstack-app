@@ -87,7 +87,7 @@ async function main() {
 
   // Create admin user with hashed password
   // IMPORTANT: Change this password after initial deployment!
-  const adminEmail = 'admin@rakehclone.com'
+  const adminEmail = 'admin@rakethclone.com'
   const adminPassword = 'admin123' // Change this in production!
   const hashedPassword = await bcrypt.hash(adminPassword, 10)
 
