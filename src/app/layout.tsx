@@ -4,6 +4,9 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Providers } from "@/components/providers";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
