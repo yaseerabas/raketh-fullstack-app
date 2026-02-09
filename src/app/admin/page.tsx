@@ -429,7 +429,9 @@ export default function AdminDashboardPage() {
   }
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/login' })
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const callbackUrl = origin ? `${origin}/login` : '/login'
+    await signOut({ callbackUrl })
   }
 
   const formatCredits = (credits: number) => {

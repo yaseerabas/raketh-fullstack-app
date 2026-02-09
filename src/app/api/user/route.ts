@@ -82,8 +82,11 @@ export async function GET(req: NextRequest) {
     const creditsPurchased = subscription?.creditsPurchased || 0
     const creditsUsed = subscription?.creditsUsed || 0
     const creditsRemaining = Math.max(0, creditsPurchased - creditsUsed)
+    const rawCreditsPercent = creditsPurchased > 0
+      ? (creditsUsed / creditsPurchased) * 100
+      : 0
     const creditsPercentage = creditsPurchased > 0
-      ? Math.round((creditsUsed / creditsPurchased) * 100)
+      ? Math.min(100, Math.max(creditsUsed > 0 ? 1 : 0, Math.round(rawCreditsPercent * 10) / 10))
       : 0
 
     return NextResponse.json({

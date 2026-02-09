@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { AudioScrubber } from '@/components/ui/audio-scrubber'
 import { Volume2, Loader2, Play, ArrowLeft, Clock, Mic, ChevronLeft, ChevronRight, History } from 'lucide-react'
 
 interface VoiceGeneration {
@@ -259,14 +260,7 @@ export default function HistoryPage() {
                       </div>
                     </div>
                     {generation.audioUrl && (
-                      <audio
-                        controls
-                        className="w-full h-10 rounded-lg"
-                        preload="metadata"
-                      >
-                        <source src={generation.audioUrl} type="audio/wav" />
-                        Your browser does not support the audio element.
-                      </audio>
+                      <AudioScrubber src={generation.audioUrl} />
                     )}
                   </div>
                 ))}

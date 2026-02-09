@@ -319,6 +319,67 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
+/* Audio controls contrast for recent generations */
+.recent-audio {
+  accent-color: #fafafa;
+}
+
+.recent-audio::-webkit-media-controls-panel {
+  background-color: rgba(20, 20, 20, 0.85);
+  opacity: 1;
+}
+
+.recent-audio::-webkit-media-controls-timeline {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  opacity: 1;
+}
+
+.recent-audio::-webkit-media-controls-playback-progress-bar {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  opacity: 1;
+}
+
+.recent-audio::-webkit-media-controls-container {
+  opacity: 1;
+}
+
+/* Custom audio scrubber */
+.audio-scrubber-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 999px;
+  outline: none;
+}
+
+.audio-scrubber-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #fafafa;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+.audio-scrubber-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #fafafa;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+.audio-scrubber-range::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
 .dark .hover-glow:hover {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
 }

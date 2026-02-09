@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { AudioScrubber } from '@/components/ui/audio-scrubber'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Mic, Clock, LogOut, Settings, Play, Loader2, Languages, Phone, CreditCard, Sparkles, TrendingUp, History } from 'lucide-react'
@@ -140,6 +141,11 @@ export default function DashboardPage() {
     return new Intl.NumberFormat('en-US').format(credits)
   }
 
+  const formatPercentage = (value: number) => {
+    if (!Number.isFinite(value)) return '0'
+    return Number.isInteger(value) ? value.toString() : value.toFixed(1)
+  }
+
   if (sessionStatus === 'loading' || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center gradient-mesh">
@@ -241,11 +247,11 @@ export default function DashboardPage() {
               <p className="text-sm text-muted-foreground mt-1">
                 of {formatCredits(userData?.subscription?.creditsPurchased || 0)} purchased
               </p>
-              {userData?.subscription && userData.subscription.creditsPercentage > 0 && (
+              {userData?.subscription && (
                 <div className="mt-4 h-2 w-full bg-secondary rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-white/80 rounded-full transition-all duration-500"
-                    style={{ width: `${100 - userData.subscription.creditsPercentage}%` }}
+                    style={{ width: `${Math.max(0, 100 - userData.subscription.creditsPercentage)}%` }}
                   />
                 </div>
               )}
@@ -355,7 +361,7 @@ export default function DashboardPage() {
                       <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
                         <div
                           className="bg-white/80 h-3 rounded-full transition-all duration-500"
-                          style={{ width: `${100 - userData.subscription.creditsPercentage}%` }}
+                          style={{ width: `${Math.max(0, 100 - userData.subscription.creditsPercentage)}%` }}
                         />
                       </div>
                       <div className="flex items-center justify-between mt-2">
@@ -363,7 +369,7 @@ export default function DashboardPage() {
                           {formatCredits(userData.subscription.creditsUsed)} used
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {userData.subscription.creditsPercentage}% consumed
+                          {formatPercentage(userData.subscription.creditsPercentage)}% consumed
                         </span>
                       </div>
                     </div>
@@ -481,14 +487,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       {generation.audioUrl && (
-                        <audio
-                          controls
-                          className="w-full h-8 sm:h-10 rounded-lg"
-                          preload="metadata"
-                        >
-                          <source src={generation.audioUrl} type="audio/wav" />
-                          Your browser does not support the audio element.
-                        </audio>
+                        <AudioScrubber src={generation.audioUrl} />
                       )}
                     </div>
                   ))}
