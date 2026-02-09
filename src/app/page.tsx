@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mic, Zap, Shield, Users, Clock, Check, Play, Pause, ArrowRight, Sparkles, Globe, Headphones } from 'lucide-react'
+import { Mic, Zap, Shield, Users, Clock, Check, Play, Pause, ArrowRight, ArrowDown, Sparkles, Globe, Headphones } from 'lucide-react'
 import Image from 'next/image'
 
 // Demo voices configuration
@@ -321,8 +321,8 @@ export default function Home() {
 
         {/* Scroll indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2">
-            <div className="w-1 h-2 bg-muted-foreground/50 rounded-full animate-pulse" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-muted-foreground/30 bg-white/5">
+            <ArrowDown className="h-4 w-4 text-muted-foreground/70" />
           </div>
         </div>
       </section>
