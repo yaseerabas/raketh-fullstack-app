@@ -9,7 +9,7 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "build:standalone": "next build && npx shx cp -r .next/static .next/standalone/.next/ && npx shx cp -r public .next/standalone/",
-    "start": "node .next/standalone/server.js",
+    "start": "next start -p 80 -H 0.0.0.0",
     "lint": "eslint .",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
