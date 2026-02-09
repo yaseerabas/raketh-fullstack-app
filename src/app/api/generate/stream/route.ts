@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { text, voiceId, type, sourceLanguage, targetLanguage } = body
+    const { text, voiceId, type, sourceLanguage, targetLanguage, name } = body
 
     if (!text || !voiceId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId: session.user.id,
         voiceCloneId: null,
+        name: typeof name === 'string' && name.trim() ? name.trim() : null,
         text: text.substring(0, 500),
         textLength,
         audioUrl,

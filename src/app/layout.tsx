@@ -20,7 +20,13 @@ export const metadata: Metadata = {
   keywords: ["RaketH Clone", "Text to Speech", "TTS", "AI Voice", "Voice Cloning", "Next.js", "TypeScript"],
   authors: [{ name: "RaketH Team" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/images/logo.png",
   },
   openGraph: {
     title: "RaketH Clone",

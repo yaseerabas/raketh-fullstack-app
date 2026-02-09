@@ -10,6 +10,7 @@ import { Volume2, Loader2, Play, ArrowLeft, Clock, Mic, ChevronLeft, ChevronRigh
 
 interface VoiceGeneration {
   id: string
+  name?: string | null
   text: string
   textLength: number
   audioUrl: string | null
@@ -26,6 +27,7 @@ export default function HistoryPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [generations, setGenerations] = useState<VoiceGeneration[]>([])
+  const [localGenerations, setLocalGenerations] = useState<VoiceGeneration[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -46,6 +48,18 @@ export default function HistoryPage() {
     }
   }, [status, page])
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('voiceGenerationHistory')
+      const parsed = raw ? JSON.parse(raw) : []
+      if (Array.isArray(parsed)) {
+        setLocalGenerations(parsed)
+      }
+    } catch (error) {
+      console.error('Error loading local generation history:', error)
+    }
+  }, [])
+
   const fetchGenerations = async () => {
     setIsLoading(true)
     try {
@@ -64,6 +78,23 @@ export default function HistoryPage() {
   }
 
   const totalPages = Math.ceil(total / limit)
+
+  const mergedGenerations = (() => {
+    const seen = new Set<string>()
+    const merged: VoiceGeneration[] = []
+    for (const generation of generations) {
+      const key = generation.audioUrl || generation.id
+      seen.add(key)
+      merged.push(generation)
+    }
+    for (const local of localGenerations) {
+      const key = local.audioUrl || local.id
+      if (!seen.has(key)) {
+        merged.push(local)
+      }
+    }
+    return merged
+  })()
 
   const formatCredits = (credits: number) => {
     return new Intl.NumberFormat('en-US').format(credits)
@@ -172,7 +203,7 @@ export default function HistoryPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : generations.length === 0 ? (
+            ) : mergedGenerations.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
                   <Mic className="h-8 w-8 text-primary" />
@@ -187,7 +218,7 @@ export default function HistoryPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {generations.map((generation, index) => (
+                {mergedGenerations.map((generation, index) => (
                   <div 
                     key={generation.id} 
                     className="p-4 rounded-xl border border-border/50 bg-muted/30 space-y-3 hover:border-primary/30 hover:bg-muted/50 transition-all duration-300 animate-fade-in cursor-pointer"
@@ -198,6 +229,11 @@ export default function HistoryPage() {
                         <Play className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
+                        {generation.name && (
+                          <p className="text-sm font-semibold text-foreground">
+                            {generation.name}
+                          </p>
+                        )}
                         <p className="text-sm font-medium leading-relaxed">
                           {generation.text.length > 200 
                             ? generation.text.substring(0, 200) + '...' 

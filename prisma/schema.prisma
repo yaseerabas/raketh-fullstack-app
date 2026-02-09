@@ -85,6 +85,7 @@ model VoiceGeneration {
   userId      String
   voiceModelId String?
   voiceCloneId String?
+  name        String?
   text        String   @db.Text // Use TEXT type for long content (up to 65KB)
   textLength  Int      // Number of characters used
   audioUrl    String?

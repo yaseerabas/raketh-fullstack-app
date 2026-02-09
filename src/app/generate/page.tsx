@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -71,10 +73,11 @@ export default function GeneratePage() {
   const [voices, setVoices] = useState<Voice[]>([])
   const [languages, setLanguages] = useState<Language | null>(null)
   const [selectedVoice, setSelectedVoice] = useState<string>('')
+  const [generationName, setGenerationName] = useState('')
   const [text, setText] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [streamProgress, setStreamProgress] = useState<string | null>(null)
-  const [generatedAudio, setGeneratedAudio] = useState<{ url: string; duration: number; savedUrl?: string } | null>(null)
+  const [generatedAudio, setGeneratedAudio] = useState<{ url: string; duration: number; savedUrl?: string; name?: string } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isVoicesLoading, setIsVoicesLoading] = useState(false)
   const [isLanguagesLoading, setIsLanguagesLoading] = useState(false)
@@ -250,10 +253,15 @@ export default function GeneratePage() {
     setStreamProgress(null)
 
     try {
+      const trimmedName = generationName.trim()
       const payload: any = {
         text,
         voiceId: selectedVoice,
         type: activeTab,
+      }
+
+      if (trimmedName) {
+        payload.name = trimmedName
       }
 
       if (activeTab === 'tts') {
@@ -284,7 +292,13 @@ export default function GeneratePage() {
 
       const savedAudioUrl = response.headers.get('X-Audio-Url') || ''
 
-      setStreamProgress('Receiving audio stream...')
+      const durationEstimateSeconds = Math.max(1, Math.ceil(text.length / 15))
+      const estimatedTotalBytes = durationEstimateSeconds * 32000
+      const totalBytesHeader = response.headers.get('Content-Length')
+      const parsedTotalBytes = totalBytesHeader ? Number.parseInt(totalBytesHeader, 10) : NaN
+      const totalBytes = Number.isFinite(parsedTotalBytes) ? parsedTotalBytes : estimatedTotalBytes
+
+      setStreamProgress('Generating audio... 0%')
 
       const reader = response.body?.getReader()
       if (!reader) throw new Error('No response stream')
@@ -297,8 +311,11 @@ export default function GeneratePage() {
         if (done) break
         chunks.push(value)
         receivedBytes += value.length
-        setStreamProgress(`Streaming audio... ${Math.round(receivedBytes / 1024)} KB`)
+        const percent = Math.min(99, Math.max(1, Math.round((receivedBytes / totalBytes) * 100)))
+        setStreamProgress(`Generating audio... ${percent}%`)
       }
+
+      setStreamProgress('Generating audio... 100%')
 
       // Combine all chunks into one ArrayBuffer, then create a Blob
       const combined = new Uint8Array(receivedBytes)
@@ -314,6 +331,20 @@ export default function GeneratePage() {
         url: blobUrl,
         duration: Math.max(1, text.length / 15),
         savedUrl: savedAudioUrl,
+        name: trimmedName || undefined,
+      })
+
+      const historyAudioUrl = savedAudioUrl || blobUrl
+      saveLocalHistory({
+        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: trimmedName || undefined,
+        text: text.substring(0, 500),
+        textLength: text.length,
+        audioUrl: historyAudioUrl,
+        duration: Math.max(1, text.length / 15),
+        status: 'completed',
+        type: activeTab,
+        createdAt: new Date().toISOString(),
       })
 
       toast({
@@ -335,6 +366,40 @@ export default function GeneratePage() {
   }
 
   const selectedVoiceData = voices.find(v => v.voiceId === selectedVoice)
+
+  const buildDownloadFilename = (name?: string) => {
+    const base = (name || 'raketh')
+      .trim()
+      .replace(/[^a-zA-Z0-9-_]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 60)
+    const safeBase = base || 'viwan'
+    const now = new Date()
+    const pad = (value: number) => value.toString().padStart(2, '0')
+    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+    return `${safeBase}-${stamp}.wav`
+  }
+
+  const saveLocalHistory = (entry: {
+    id: string
+    name?: string
+    text: string
+    textLength: number
+    audioUrl: string
+    duration: number
+    status: string
+    type: string
+    createdAt: string
+  }) => {
+    try {
+      const raw = localStorage.getItem('voiceGenerationHistory')
+      const existing = raw ? JSON.parse(raw) : []
+      const next = [entry, ...existing].slice(0, 50)
+      localStorage.setItem('voiceGenerationHistory', JSON.stringify(next))
+    } catch (error) {
+      console.error('Failed to save local generation history:', error)
+    }
+  }
 
   // Get language options for dropdowns
   const getTranslationLanguageOptions = (): LanguageOption[] => {
@@ -395,10 +460,13 @@ export default function GeneratePage() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex items-center gap-2 group">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-purple-500 rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity" />
-                  <Volume2 className="relative h-6 w-6 text-primary" />
-                </div>
+                <Image
+                  src="/logo.png"
+                  alt="RaketH Clone"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 object-contain drop-shadow-lg"
+                />
                 <span className="font-bold">RaketH Clone</span>
               </div>
             </div>
@@ -462,102 +530,20 @@ export default function GeneratePage() {
                     Convert text directly to speech with streaming audio
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Language Selection */}
-                  <div className="space-y-2">
-                    <Label htmlFor="tts-language">Language</Label>
-                    <Select
-                      value={ttsLanguage}
-                      onValueChange={setTtsLanguage}
-                      onOpenChange={(open) => {
-                        if (open) fetchLanguages()
-                      }}
-                    >
-                      <SelectTrigger id="tts-language">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isLanguagesLoading && !languagesLoaded ? (
-                          <SelectItem value="loading" disabled>
-                            Loading languages...
-                          </SelectItem>
-                        ) : (
-                          getTTSLanguageOptions().map((lang) => (
-                            <SelectItem key={lang.value} value={lang.value}>
-                              {lang.label}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Voice Selection */}
-                  <div className="space-y-2">
-                    <Label htmlFor="voice-tts">Select Voice</Label>
-                    <Select
-                      value={selectedVoice}
-                      onValueChange={setSelectedVoice}
-                      onOpenChange={(open) => {
-                        if (open) fetchVoices()
-                      }}
-                    >
-                      <SelectTrigger id="voice-tts">
-                        <SelectValue placeholder="Select a voice" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isVoicesLoading && !voicesLoaded ? (
-                          <SelectItem value="loading" disabled>
-                            Loading voices...
-                          </SelectItem>
-                        ) : voices.length === 0 ? (
-                          <SelectItem value="empty" disabled>
-                            No voices available
-                          </SelectItem>
-                        ) : (
-                          voices.map((voice) => (
-                            <SelectItem key={voice.id} value={voice.voiceId}>
-                              <div className="flex items-center gap-2">
-                                <span>{voice.name}</span>
-                                {voice.isDefault && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Default
-                                  </Badge>
-                                )}
-                                {!voice.available && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    Unavailable
-                                  </Badge>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-
-                    {selectedVoiceData && (
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/10">
-                        <p className="text-sm font-medium">{selectedVoiceData.name}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {selectedVoiceData.description}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
+                <CardContent className="grid gap-6 md:grid-cols-[1fr_0.9fr]">
                   {/* Text Input */}
                   <div className="space-y-2">
                     <Label htmlFor="text-tts">Text to Convert</Label>
-                    <Textarea
-                      id="text-tts"
-                      placeholder="Enter text you want to convert to speech..."
-                      value={text}
-                      onChange={(e) => setText(e.target.value)}
-                      rows={6}
-                      maxLength={MAX_TEXT_LENGTH}
-                      className="resize-none rounded-xl border-border/50 bg-muted/30 focus:border-primary/50 focus:ring-primary/20 transition-all"
-                    />
+                    <div className="md:aspect-square">
+                      <Textarea
+                        id="text-tts"
+                        placeholder="Enter text you want to convert to speech..."
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        maxLength={MAX_TEXT_LENGTH}
+                        className="h-full min-h-[260px] resize-none overflow-y-auto rounded-xl border-border/50 bg-muted/30 focus:border-primary/50 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{text.length > 2000 ? 'Uses streaming for faster delivery' : 'Enter text you want to convert'}</span>
                       <span className={
@@ -567,30 +553,129 @@ export default function GeneratePage() {
                     </div>
                   </div>
 
-                  {/* Generate Button */}
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !text.trim()}
-                    size="lg"
-                    className="w-full gradient-primary border-0 hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        {streamProgress || 'Generating Audio...'}
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 className="mr-2 h-5 w-5" />
-                        Generate Speech
-                      </>
-                    )}
-                  </Button>
-                  {isGenerating && (
-                    <p className="text-sm text-muted-foreground text-center">
-                      Audio is streaming — please wait for download to finish.
-                    </p>
-                  )}
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="generation-name-tts">Generation Name</Label>
+                      <Input
+                        id="generation-name-tts"
+                        placeholder="e.g., Intro voice, Promo take 1"
+                        value={generationName}
+                        onChange={(e) => setGenerationName(e.target.value)}
+                        maxLength={60}
+                        className="rounded-xl border-border/50 bg-muted/30 focus:border-primary/50 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+
+                    {/* Language Selection */}
+                    <div className="space-y-2">
+                      <Label htmlFor="tts-language">Language</Label>
+                      <Select
+                        value={ttsLanguage}
+                        onValueChange={setTtsLanguage}
+                        onOpenChange={(open) => {
+                          if (open) fetchLanguages()
+                        }}
+                      >
+                        <SelectTrigger id="tts-language">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isLanguagesLoading && !languagesLoaded ? (
+                            <SelectItem value="loading" disabled>
+                              Loading languages...
+                            </SelectItem>
+                          ) : (
+                            getTTSLanguageOptions().map((lang) => (
+                              <SelectItem key={lang.value} value={lang.value}>
+                                {lang.label}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Voice Selection */}
+                    <div className="space-y-2">
+                      <Label htmlFor="voice-tts">Select Voice</Label>
+                      <Select
+                        value={selectedVoice}
+                        onValueChange={setSelectedVoice}
+                        onOpenChange={(open) => {
+                          if (open) fetchVoices()
+                        }}
+                      >
+                        <SelectTrigger id="voice-tts">
+                          <SelectValue placeholder="Select a voice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isVoicesLoading && !voicesLoaded ? (
+                            <SelectItem value="loading" disabled>
+                              Loading voices...
+                            </SelectItem>
+                          ) : voices.length === 0 ? (
+                            <SelectItem value="empty" disabled>
+                              No voices available
+                            </SelectItem>
+                          ) : (
+                            voices.map((voice) => (
+                              <SelectItem key={voice.id} value={voice.voiceId}>
+                                <div className="flex items-center gap-2">
+                                  <span>{voice.name}</span>
+                                  {voice.isDefault && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      Default
+                                    </Badge>
+                                  )}
+                                  {!voice.available && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      Unavailable
+                                    </Badge>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+
+                      {selectedVoiceData && (
+                        <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/10">
+                          <p className="text-sm font-medium">{selectedVoiceData.name}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {selectedVoiceData.description}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Generate Button */}
+                    <div className="space-y-2">
+                      <Button
+                        onClick={handleGenerate}
+                        disabled={isGenerating || !text.trim()}
+                        size="lg"
+                        className="w-full gradient-primary border-0 hover:shadow-lg hover:shadow-primary/25 transition-all"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            {streamProgress || 'Generating Audio...'}
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="mr-2 h-5 w-5" />
+                            Generate Speech
+                          </>
+                        )}
+                      </Button>
+                      {isGenerating && (
+                        <p className="text-sm text-muted-foreground text-center">
+                          Audio is streaming — please wait for download to finish.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -609,132 +694,20 @@ export default function GeneratePage() {
                     Translate text first, then generate speech with streaming audio
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Language Selection */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="source-lang">Source Language</Label>
-                      <Select
-                        value={sourceLanguage}
-                        onValueChange={setSourceLanguage}
-                        onOpenChange={(open) => {
-                          if (open) fetchLanguages()
-                        }}
-                      >
-                        <SelectTrigger id="source-lang">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {isLanguagesLoading && !languagesLoaded ? (
-                            <SelectItem value="loading" disabled>
-                              Loading languages...
-                            </SelectItem>
-                          ) : (
-                            getTranslationLanguageOptions().map((lang) => (
-                              <SelectItem key={lang.value} value={lang.value}>
-                                {lang.label}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="target-lang">Target Language</Label>
-                      <Select
-                        value={targetLanguage}
-                        onValueChange={setTargetLanguage}
-                        onOpenChange={(open) => {
-                          if (open) fetchLanguages()
-                        }}
-                      >
-                        <SelectTrigger id="target-lang">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {isLanguagesLoading && !languagesLoaded ? (
-                            <SelectItem value="loading" disabled>
-                              Loading languages...
-                            </SelectItem>
-                          ) : (
-                            getTranslationLanguageOptions().map((lang) => (
-                              <SelectItem key={lang.value} value={lang.value}>
-                                {lang.label}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Voice Selection */}
-                  <div className="space-y-2">
-                    <Label htmlFor="voice-translate">Select Voice</Label>
-                    <Select
-                      value={selectedVoice}
-                      onValueChange={setSelectedVoice}
-                      onOpenChange={(open) => {
-                        if (open) fetchVoices()
-                      }}
-                    >
-                      <SelectTrigger id="voice-translate">
-                        <SelectValue placeholder="Select a voice" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isVoicesLoading && !voicesLoaded ? (
-                          <SelectItem value="loading" disabled>
-                            Loading voices...
-                          </SelectItem>
-                        ) : voices.length === 0 ? (
-                          <SelectItem value="empty" disabled>
-                            No voices available
-                          </SelectItem>
-                        ) : (
-                          voices.map((voice) => (
-                            <SelectItem key={voice.id} value={voice.voiceId}>
-                              <div className="flex items-center gap-2">
-                                <span>{voice.name}</span>
-                                {voice.isDefault && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Default
-                                  </Badge>
-                                )}
-                                {!voice.available && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    Unavailable
-                                  </Badge>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-
-                    {selectedVoiceData && (
-                      <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/10">
-                        <p className="text-sm font-medium">{selectedVoiceData.name}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {selectedVoiceData.description}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
+                <CardContent className="grid gap-6 md:grid-cols-[1fr_0.9fr]">
                   {/* Text Input */}
                   <div className="space-y-2">
                     <Label htmlFor="text-translate">Text to Translate & Speak</Label>
-                    <Textarea
-                      id="text-translate"
-                      placeholder="Enter text you want to translate and convert to speech..."
-                      value={text}
-                      onChange={(e) => setText(e.target.value)}
-                      rows={6}
-                      maxLength={MAX_TEXT_LENGTH}
-                      className="resize-none rounded-xl border-border/50 bg-muted/30 focus:border-primary/50 focus:ring-primary/20 transition-all"
-                    />
+                    <div className="md:aspect-square">
+                      <Textarea
+                        id="text-translate"
+                        placeholder="Enter text you want to translate and convert to speech..."
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        maxLength={MAX_TEXT_LENGTH}
+                        className="h-full min-h-[260px] resize-none overflow-y-auto rounded-xl border-border/50 bg-muted/30 focus:border-primary/50 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{text.length > 2000 ? 'Uses streaming for faster delivery' : 'Enter text you want to translate'}</span>
                       <span className={
@@ -744,30 +717,159 @@ export default function GeneratePage() {
                     </div>
                   </div>
 
-                  {/* Generate Button */}
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !text.trim()}
-                    size="lg"
-                    className="w-full gradient-primary border-0 hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        {streamProgress || 'Translating & Generating...'}
-                      </>
-                    ) : (
-                      <>
-                        <Languages className="mr-2 h-5 w-5" />
-                        Translate & Generate Speech
-                      </>
-                    )}
-                  </Button>
-                  {isGenerating && (
-                    <p className="text-sm text-muted-foreground text-center">
-                      Audio is streaming — please wait for download to finish.
-                    </p>
-                  )}
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="generation-name-translate">Generation Name</Label>
+                      <Input
+                        id="generation-name-translate"
+                        placeholder="e.g., French narration, Ad v2"
+                        value={generationName}
+                        onChange={(e) => setGenerationName(e.target.value)}
+                        maxLength={60}
+                        className="rounded-xl border-border/50 bg-muted/30 focus:border-primary/50 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+
+                    {/* Language Selection */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="source-lang">Source Language</Label>
+                        <Select
+                          value={sourceLanguage}
+                          onValueChange={setSourceLanguage}
+                          onOpenChange={(open) => {
+                            if (open) fetchLanguages()
+                          }}
+                        >
+                          <SelectTrigger id="source-lang">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {isLanguagesLoading && !languagesLoaded ? (
+                              <SelectItem value="loading" disabled>
+                                Loading languages...
+                              </SelectItem>
+                            ) : (
+                              getTranslationLanguageOptions().map((lang) => (
+                                <SelectItem key={lang.value} value={lang.value}>
+                                  {lang.label}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="target-lang">Target Language</Label>
+                        <Select
+                          value={targetLanguage}
+                          onValueChange={setTargetLanguage}
+                          onOpenChange={(open) => {
+                            if (open) fetchLanguages()
+                          }}
+                        >
+                          <SelectTrigger id="target-lang">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {isLanguagesLoading && !languagesLoaded ? (
+                              <SelectItem value="loading" disabled>
+                                Loading languages...
+                              </SelectItem>
+                            ) : (
+                              getTranslationLanguageOptions().map((lang) => (
+                                <SelectItem key={lang.value} value={lang.value}>
+                                  {lang.label}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Voice Selection */}
+                    <div className="space-y-2">
+                      <Label htmlFor="voice-translate">Select Voice</Label>
+                      <Select
+                        value={selectedVoice}
+                        onValueChange={setSelectedVoice}
+                        onOpenChange={(open) => {
+                          if (open) fetchVoices()
+                        }}
+                      >
+                        <SelectTrigger id="voice-translate">
+                          <SelectValue placeholder="Select a voice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isVoicesLoading && !voicesLoaded ? (
+                            <SelectItem value="loading" disabled>
+                              Loading voices...
+                            </SelectItem>
+                          ) : voices.length === 0 ? (
+                            <SelectItem value="empty" disabled>
+                              No voices available
+                            </SelectItem>
+                          ) : (
+                            voices.map((voice) => (
+                              <SelectItem key={voice.id} value={voice.voiceId}>
+                                <div className="flex items-center gap-2">
+                                  <span>{voice.name}</span>
+                                  {voice.isDefault && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      Default
+                                    </Badge>
+                                  )}
+                                  {!voice.available && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      Unavailable
+                                    </Badge>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+
+                      {selectedVoiceData && (
+                        <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/10">
+                          <p className="text-sm font-medium">{selectedVoiceData.name}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {selectedVoiceData.description}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Generate Button */}
+                    <div className="space-y-2">
+                      <Button
+                        onClick={handleGenerate}
+                        disabled={isGenerating || !text.trim()}
+                        size="lg"
+                        className="w-full gradient-primary border-0 hover:shadow-lg hover:shadow-primary/25 transition-all"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            {streamProgress || 'Translating & Generating...'}
+                          </>
+                        ) : (
+                          <>
+                            <Languages className="mr-2 h-5 w-5" />
+                            Translate & Generate Speech
+                          </>
+                        )}
+                      </Button>
+                      {isGenerating && (
+                        <p className="text-sm text-muted-foreground text-center">
+                          Audio is streaming — please wait for download to finish.
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -784,6 +886,11 @@ export default function GeneratePage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">Voice Generated Successfully!</p>
+                      {generatedAudio.name && (
+                        <p className="text-sm text-muted-foreground">
+                          {generatedAudio.name}
+                        </p>
+                      )}
                       <p className="text-sm text-muted-foreground">
                         Duration: {generatedAudio.duration.toFixed(1)}s
                       </p>
@@ -799,7 +906,7 @@ export default function GeneratePage() {
                       onClick={() => {
                         const a = document.createElement('a')
                         a.href = generatedAudio.url
-                        a.download = `voice-generation-${Date.now()}.wav`
+                        a.download = buildDownloadFilename(generatedAudio.name)
                         a.click()
                       }}
                       className="hover:border-primary/50 hover:bg-primary/5 transition-all"
