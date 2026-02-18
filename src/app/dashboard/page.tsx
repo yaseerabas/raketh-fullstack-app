@@ -13,8 +13,6 @@ import { Mic, Clock, LogOut, Settings, Play, Loader2, Languages, Phone, CreditCa
 import Image from 'next/image'
 import { useToast } from '@/hooks/use-toast'
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 interface VoiceClone {
   id: string

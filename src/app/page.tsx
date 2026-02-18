@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Mic, Zap, Shield, Users, Clock, Check, Play, Pause, ArrowRight, ArrowDown, Sparkles, Globe, Headphones } from 'lucide-react'
 import Image from 'next/image'
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 // Demo voices configuration
 const DEMO_VOICES = [
