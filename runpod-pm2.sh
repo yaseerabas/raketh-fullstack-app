@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env sh
+set -eu
 
 APP_NAME="raketh-nextjs-app"
-APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
 cd "$APP_DIR"
 
